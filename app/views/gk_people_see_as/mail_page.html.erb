@@ -1,0 +1,5 @@
+<%# The mail preview as a page, without script %>
+<% html_title l(:label_gk_people_see_as_mail) %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<h2><%= link_to "##{@issue.id}", issue_path(@issue) %> &#187; <%= l(:label_gk_people_see_as_mail) %></h2>
+<div class="box"><%= render partial: 'mail' %></div>

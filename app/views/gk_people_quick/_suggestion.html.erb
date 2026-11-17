@@ -1,0 +1,29 @@
+<% person = rec.is_a?(GkPeoplePerson) %>
+<% link = ->(r) { link_to(r.name, person ? gk_people_person_path(r) : gk_people_organization_path(r)) } %>
+<div class="gk-people-quick-suggestion">
+  <table class="list gk-people-list gk-people-quick-compare">
+    <thead><tr><th></th><th><%= link.call(rec) %> <%= gk_people_quick_mark(rec) %></th><th><%= link.call(other) %> <%= gk_people_quick_mark(other) %></th></tr></thead>
+    <tbody>
+    <% GkPeople::Quick.compare(rec, other).each do |label, a, b| %>
+      <% differs = a.to_s.strip.casecmp?(b.to_s.strip) ? nil : 'gk-people-quick-differs' %>
+      <tr><th><%= label %></th><td class="text<%= " #{differs}" if differs %>"><%= a %></td><td class="text<%= " #{differs}" if differs %>"><%= b %></td></tr>
+    <% end %>
+    </tbody>
+  </table>
+  <% if GkPeople::Access.manage? %>
+  <div class="buttons">
+    <%# Slå ihop asks in GK GUI Stuff's popover in the role alarm, since a merge cannot be undone (a popover never stands inside a p) %>
+    <%= gk_gui_stuff_popover(l(:button_gk_people_quick_merge), role: :alarm) do %>
+      <%= form_tag gk_people_quick_merge_path(GkPeople::Quick.key_of(rec), rec.id) do %>
+        <%= hidden_field_tag 'other_id', other.id, id: nil %>
+        <p><%= l(:text_gk_people_quick_merge_confirm, name: rec.name, other: other.name) %></p>
+        <%= gk_gui_stuff_popover_buttons(l(:button_gk_people_quick_merge), alarm: true) %>
+      <% end %>
+    <% end %>
+    <%= form_tag gk_people_quick_different_path(GkPeople::Quick.key_of(rec), rec.id), class: 'gk-people-inline-form' do %>
+      <%= hidden_field_tag 'other_id', other.id, id: nil %>
+      <%= submit_tag l(person ? :button_gk_people_quick_different_persons : :button_gk_people_quick_different_orgs), name: nil %>
+    <% end %>
+  </div>
+  <% end %>
+</div>

@@ -1,0 +1,43 @@
+<%# Vem är du? at a shared computer: search for oneself among those on the account's matrix, and choose %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<% html_title l(:label_gk_people_actor_who) %>
+<h2><%= l(:label_gk_people_actor_who) %></h2>
+<% if !@linked %>
+  <p class="flash warning"><%= gk_people_t_marked(:text_gk_people_actor_no_groups, :account, User.current, User.current.name) %></p>
+<% else %>
+  <%# A badge: a reader in keyboard mode types the value and Enter into this field (hidden as it is typed) %>
+  <%= form_tag gk_people_actor_who_path, class: 'gk-people-actor-badge', autocomplete: 'off' do %>
+    <%= hidden_field_tag 'back_url', @back_url, id: nil if @back_url %>
+    <div class="box tabular">
+      <p><label for="gk_people_badge"><%= l(:field_gk_people_badge) %></label>
+        <%= password_field_tag 'token', '', id: 'gk_people_badge', size: 30, autofocus: true, autocomplete: 'off', placeholder: l(:text_gk_people_badge_placeholder) %>
+        <%= submit_tag l(:button_gk_people_badge_use), name: nil %>
+        <em class="info"><%= l(:text_gk_people_badge) %></em></p>
+    </div>
+  <% end %>
+  <%= form_tag gk_people_actor_who_path, class: 'gk-people-actor-who' do %>
+    <%= hidden_field_tag 'back_url', @back_url if @back_url %>
+    <div class="box tabular">
+      <p><%= gk_people_t_marked(:text_gk_people_actor_who, :account, User.current, User.current.name, minutes: GkPeople::Actor.minutes) %>
+        <% if GkPeople::SharedAccounts.require_pin?(User.current) %><strong><%= l(:text_gk_people_actor_pin_needed) %></strong><% end %></p>
+      <div class="gk-people-actor" data-search-url="<%= gk_people_actor_search_path %>" data-none="<%= l(:text_gk_people_actor_none_found) %>">
+        <p>
+          <label for="gk_people_actor_q_who"><%= l(:field_gk_people_actor_who) %> <span class="required">*</span></label>
+          <%= hidden_field_tag 'person_id', @person&.id, id: 'gk_people_actor_person_id_who', class: 'gk-people-actor-id' %>
+          <span class="gk-people-actor-chosen"<%= ' hidden' unless @person %>>
+            <strong class="gk-people-actor-name"><%= @person&.name %><%= gk_people_person_mark(@person) %></strong>
+            <button type="button" class="gk-people-actor-change"><%= l(:button_gk_people_actor_change) %></button>
+          </span>
+          <input type="search" id="gk_people_actor_q_who" class="gk-people-actor-q" autocomplete="off" size="30"
+                 placeholder="<%= l(:text_gk_people_actor_placeholder) %>"<%= ' hidden' if @person %>>
+          <noscript>
+            <%= select_tag 'person_id_noscript', options_for_select([['', '']] + GkPeople::Actor.choosable.sorted.map { |p| [p.name, p.id] }), id: nil %>
+          </noscript>
+        </p>
+        <p class="gk-people-actor-found" role="listbox" hidden></p>
+      </div>
+    </div>
+    <%= submit_tag l(:button_gk_people_actor_its_me) %>
+  <% end %>
+  <%= javascript_include_tag 'gk_people_actor', plugin: 'gk_people' %>
+<% end %>

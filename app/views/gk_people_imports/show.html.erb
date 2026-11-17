@@ -1,0 +1,68 @@
+<%# Importera, step two: the columns matched to fields, the mode, and per row what would happen (or what did) %>
+<% i = @import %>
+<% html_title l(:label_gk_people_import) %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<h2><%= link_to l(:label_gk_people_imports), gk_people_imports_path %> &#187; <%= l("label_gk_people_import_#{i.resource}") %>, <%= i.source_label %></h2>
+<p><%= l("label_gk_people_import_state_#{i.state}") %>. <%= l(:label_gk_people_info_source_on) %>: <%= i.source_on ? format_date(i.source_on) : '-' %>.
+  <% if i.filename %><span class="gk-people-muted"><%= i.filename %></span><% end %>
+  <%= gk_people_import_counts(i.counts) %></p>
+<%# The reading the run made in records, and the columns no field reads %>
+<% if (rd = i.reading) && rd.visible? %>
+  <p><%= l(:label_gk_people_import_reading) %>: <%= link_to GkRecords::Readings.label(rd), gk_records_reading_path(rd) %></p>
+<% end %>
+<% if i.manifest && i.preview? %><p class="gk-people-muted"><%= l(:text_gk_people_import_with_manifest) %></p><% end %>
+<%= render 'data_controller' %>
+<% if i.company? %>
+<%= render 'company', i: i %>
+<% else %>
+<% if i.profile == GkPeople::Import::SCB_PROFILE %>
+  <p class="info"><%= l(:text_gk_people_import_scb) %></p>
+<% end %>
+<% if i.preview? && (unread = i.unread_headings).any? %>
+  <p class="gk-people-muted"><%= l(:text_gk_people_import_not_read, columns: unread.join(', ')) %></p>
+<% end %>
+
+
+<% if i.preview? %>
+<%= form_tag(gk_people_import_path(i), method: :patch) do %>
+<fieldset class="box tabular"><legend><%= l(:label_gk_people_import_mapping) %></legend>
+  <% GkPeople::Import::FIELDS.fetch(i.resource).each do |f| %>
+    <p><label for="map_<%= f %>"><%= l("label_gk_people_import_field_#{f}") %></label>
+      <%= select_tag "import[mapping][#{f}]", options_for_select([['', '']] + i.headings.each_with_index.map { |h, n| [h.presence || (n + 1).to_s, n] }, i.mapping[f]), id: "map_#{f}" %></p>
+  <% end %>
+  <p><label><%= l(:label_gk_people_import_mode) %></label>
+    <% GkPeople::Import::MODES.each do |m| %>
+      <label class="inline"><%= radio_button_tag 'import[mode]', m, i.mode == m %> <%= l("label_gk_people_import_mode_#{m}") %></label>
+    <% end %>
+    <em class="info"><%= l(:text_gk_people_import_modes) %></em></p>
+</fieldset>
+<p><%= submit_tag l(:button_gk_people_import_preview_again) %></p>
+<% end %>
+<div class="gk-people-import-buttons">
+  <%= gk_gui_stuff_popover(l(:button_gk_people_import_run), role: :alarm) do %>
+    <p><%= l(:text_gk_people_import_confirm, count: i.counts['new'].to_i + i.counts['update'].to_i) %></p>
+    <%= form_tag run_gk_people_import_path(i), method: :post do %><%= gk_gui_stuff_popover_buttons(l(:button_gk_people_import_run), alarm: true) %><% end %>
+  <% end %>
+  <%= button_to l(:button_gk_people_import_discard), discard_gk_people_import_path(i), method: :post %>
+</div>
+<% end %>
+
+<div class="autoscroll">
+<table class="list gk-people-list gk-people-import-rows">
+  <thead><tr><th><%= l(:label_gk_people_import_line) %></th><th><%= l(:label_gk_people_import_action) %></th><th><%= l(:label_gk_people_import_values) %></th><th><%= l(:label_gk_people_import_notes) %></th></tr></thead>
+  <tbody>
+  <% i.preview_rows.each do |r| %>
+    <tr class="gk-people-import-<%= r['action'] %>">
+      <td class="line"><%= r['line'] %></td>
+      <td class="action"><span class="gk-people-import-action gk-people-import-action-<%= r['action'] %>"><%= l("label_gk_people_import_action_#{r['action']}") %></span>
+        <% if r['target_id'] %><%= link_to "##{r['target_id']}", (i.resource == 'organizations' ? gk_people_organization_path(r['target_id']) : gk_people_person_path(r['target_id'])) %><% end %></td>
+      <td class="text values"><% if r['changes'].present? %>
+          <% r['changes'].each do |f, (was, now)| %><div><strong><%= l("label_gk_people_import_field_#{f}", default: f) %></strong>: <%= Array(was).join(', ').presence || '-' %> &#8594; <%= Array(now).join(', ') %></div><% end %>
+        <% else %><span class="gk-people-muted"><%= r['values'].to_h.values.join(', ').truncate(120) %></span><% end %></td>
+      <td class="text notes"><% (Array(r['errors']) + Array(r['warnings'])).each do |m| %><div><%= m %></div><% end %></td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+</div>
+<% end %>

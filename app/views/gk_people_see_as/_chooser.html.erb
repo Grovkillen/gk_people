@@ -1,0 +1,61 @@
+<%# Se som: the choice, the same on the page and in gui_stuff's surface. The choices belong to the place: those seen in
+    the issue first, then the project's people, groups and roles, the roles nobody has in it, and search among all. %>
+<% project = place[:project]; issue = place[:issue] %>
+<%# the place's path, checked by core's validate_back_url here too (the controller already did), so the form and the
+    search never carry an address it would refuse %>
+<% path = validate_back_url(path.to_s) || '' %>
+<div class="gk-people-see-as-choose" data-title="<%= l(:label_gk_people_see_as) %>" data-cancel="<%= l(:button_cancel) %>"
+     data-search-url="<%= gk_people_see_as_search_path(path: path) %>">
+  <% if error %><div class="flash error" role="alert"><%= error %></div><% end %>
+  <p class="nodata" style="font-size: 1em;"><%= l(:text_gk_people_see_as_intro) %></p>
+  <%= form_tag gk_people_see_as_path, method: :post, id: 'gk-people-see-as-form' do %>
+    <%= hidden_field_tag 'path', path, id: nil %>
+    <%= hidden_field_tag 'back_url', path, id: nil %>
+    <%# The reason at the place people.see_as: the form is sent by its many picks, so it takes GK GUI Stuff's reason
+        block, not the button with a reason; with records records' shell draws the block in the place's mode, without
+        records the block in the place's default (optional) %>
+    <% if defined?(GkRecords::Reasons) %>
+      <% unless GkRecords::Reasons.off?('people.see_as') %>
+        <p><%= gk_records_reason_field('people.see_as', name: 'reason', value: params[:reason], id: 'gk_people_see_as_reason', html: { maxlength: 500 }) %></p>
+      <% end %>
+    <% else %>
+      <p><%= gk_gui_stuff_reason_block(required: GkPeople::REASON_PLACES['see_as'].first == :required, id: 'gk-people-see-as-reason', name: 'reason',
+                                        value: params[:reason], area_id: 'gk_people_see_as_reason', area: { maxlength: 500 }) %></p>
+    <% end %>
+    <% if issue && choices[:issue].any? %>
+      <h4><%= l(:label_gk_people_see_as_in_issue, id: issue.id) %></h4>
+      <div class="gk-people-picks">
+        <% choices[:issue].each do |p| %>
+          <% note = if p.id == issue.author_id then l(:field_author) elsif p.id == issue.assigned_to_id then l(:field_assigned_to) else l(:label_issue_watchers) end %>
+          <%= render partial: 'gk_people_see_as/pick', locals: { p: p, note: note } %>
+        <% end %>
+      </div>
+    <% end %>
+    <% if project %>
+      <h4><%= l(:label_gk_people_see_as_in_project, project: project.name) %></h4>
+      <% if choices[:users].any? || choices[:groups].any? %>
+        <div class="gk-people-picks">
+          <% (choices[:users] + choices[:groups]).each do |p| %><%= render partial: 'gk_people_see_as/pick', locals: { p: p, note: nil } %><% end %>
+        </div>
+      <% else %>
+        <p class="nodata" style="font-size: 1em;"><%= l(:text_gk_people_see_as_no_members) %></p>
+      <% end %>
+      <h4><%= l(:label_gk_people_see_as_roles, project: project.name) %></h4>
+      <div class="gk-people-picks">
+        <% choices[:roles].each do |r| %>
+          <%= gk_gui_stuff_pill(r.name, dashed: true, button: { type: 'submit', name: 'pick', value: "role:#{r.id}" }, html: { class: 'gk-people-pick' }) %>
+        <% end %>
+        <% choices[:roles_missing].each do |r| %>
+          <%= gk_gui_stuff_pill(r.name, dashed: true, muted: true, note: l(:label_gk_people_see_as_not_in_project),
+                                button: { type: 'submit', name: 'pick', value: "role:#{r.id}", title: l(:text_gk_people_see_as_role_missing_hint, role: r.name, project: project.name) }, html: { class: 'gk-people-pick' }) %>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="nodata" style="font-size: 1em;"><%= l(:text_gk_people_see_as_roles_need_project) %></p>
+    <% end %>
+    <h4><%= l(:label_gk_people_see_as_search) %></h4>
+    <p><%= text_field_tag 'q', params[:q], size: 30, id: 'gk_people_see_as_q', autocomplete: 'off', placeholder: l(:label_search) %>
+      <button type="submit" name="search" value="1" formaction="<%= gk_people_see_as_new_path %>" formmethod="get" formnovalidate class="gk-people-see-as-search-btn"><%= l(:label_search) %></button></p>
+    <div id="gk-people-see-as-found"><%= render partial: 'gk_people_see_as/found', locals: { found: found, path: path } %></div>
+  <% end %>
+</div>

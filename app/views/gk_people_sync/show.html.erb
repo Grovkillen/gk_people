@@ -1,0 +1,26 @@
+<%# One call to the sync: the counts and every rejected post with its reasons %>
+<% html_title l(:label_gk_people_sync_log) %>
+<% g = @log %>
+<h2><%= link_to l(:label_gk_people_sync_log), gk_people_sync_log_path %> &#187; <%= g.source %>, <%= l("label_gk_people_sync_resource_#{g.resource}", default: g.resource) %>, <%= format_time(g.started_at) %></h2>
+<div class="box">
+  <table class="attributes">
+    <tr><th><%= l(:label_gk_people_sync_by) %></th><td><%= gk_people_user(g.user) %></td></tr>
+    <tr><th><%= l(:label_gk_people_sync_received) %></th><td><%= g.received %></td></tr>
+    <tr><th><%= l(:label_gk_people_sync_created) %></th><td><%= g.created %></td></tr>
+    <tr><th><%= l(:label_gk_people_sync_updated) %></th><td><%= g.updated %></td></tr>
+    <tr><th><%= l(:label_gk_people_sync_unchanged) %></th><td><%= g.unchanged %></td></tr>
+    <tr><th><%= l(:label_gk_people_sync_rejected) %></th><td><%= g.rejected %></td></tr>
+  </table>
+</div>
+<% errs = g.errors_list %>
+<% if errs.any? %>
+  <h3><%= l(:label_gk_people_sync_errors) %> <%= gk_gui_stuff_count(errs.size) %></h3>
+  <table class="list">
+    <thead><tr><th>#</th><th><%= l(:label_gk_people_sync_external_id) %></th><th></th></tr></thead>
+    <tbody>
+    <% errs.each do |e| %>
+      <tr class="<%= cycle('odd', 'even') %>"><td class="index"><%= e['index'].to_i + 1 %></td><td class="external_id"><code><%= e['external_id'] %></code></td><td class="text"><%= Array(e['errors']).join('; ') %></td></tr>
+    <% end %>
+    </tbody>
+  </table>
+<% end %>

@@ -1,0 +1,17 @@
+<%# A group of people: name and what it is for. The name and description have other languages under Översättningar. %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<%= error_messages_for @group %>
+<% g = @group %>
+<%= form_tag((g.persisted? ? gk_people_group_path(g) : gk_people_groups_path), method: (g.persisted? ? :patch : :post)) do %>
+<div class="box tabular">
+  <p><label for="group_name"><%= l(:field_name) %> <span class="required">*</span></label>
+    <%= text_field_tag 'group[name]', g.name, size: 50, id: 'group_name', disabled: g.owned_by_source?(:name) %><%= gk_people_source_note(g, :name) %></p>
+  <p><label for="group_description"><%= l(:field_description) %></label>
+    <%= text_area_tag 'group[description]', g.description, rows: 3, cols: 60, id: 'group_description' %>
+    <em class="info"><%= l(:text_gk_people_group_description) %></em></p>
+  <p><label for="group_active"><%= l(:field_active) %></label>
+    <% if g.owned_by_source?(:active) %><%= check_box_tag 'gk_people_ro_active', '1', g.active, disabled: true %><%= gk_people_source_note(g, :active) %><% else %><%= hidden_field_tag 'group[active]', '0', id: nil %><%= check_box_tag 'group[active]', '1', g.active, id: 'group_active' %><% end %></p>
+</div>
+<p><%= submit_tag(g.persisted? ? l(:button_save) : l(:button_create)) %>
+  <%= link_to l(:button_cancel), (g.persisted? ? gk_people_group_path(g) : gk_people_groups_path) %></p>
+<% end %>

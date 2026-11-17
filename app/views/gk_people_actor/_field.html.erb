@@ -1,0 +1,46 @@
+<%# actor_records: who is registering, on a shared account. Always empty in a new form; search by name among those
+    at this computer (the members of its people groups), choose oneself. Without script: a list of them.
+    uid makes the ids unique when two forms are on one page (the issue's and a note being edited). %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<% uid = local_assigns[:uid].presence || 'form' %>
+<% given = GkPeople::Actor.current %>
+<% if given %>
+<div class="gk-people-actor">
+  <p><label><%= l(:field_gk_people_actor) %></label>
+    <strong><%= given[:person].name %></strong><%= gk_people_person_mark(given[:person]) %>
+    <%= link_to l(:button_gk_people_actor_change), gk_people_actor_who_path(back_url: request.get? ? request.fullpath : nil) %></p>
+</div>
+<% elsif !GkPeople::Actor.linked?(account) %>
+<div class="gk-people-actor">
+  <p><label><%= l(:field_gk_people_actor) %> <span class="required">*</span></label>
+    <span class="gk-people-muted"><%= gk_people_t_marked(:text_gk_people_actor_no_groups, :account, account, account.name) %></span></p>
+</div>
+<% elsif GkPeople::SharedAccounts.require_pin?(account) %>
+<%# a PIN is required at this computer: the person comes only from Vem är du?, never from this field %>
+<div class="gk-people-actor">
+  <p><label><%= l(:field_gk_people_actor) %> <span class="required">*</span></label>
+    <%= l(:text_gk_people_actor_pin_use_who) %>
+    <%= link_to l(:label_gk_people_actor_who), gk_people_actor_who_path(back_url: request.get? ? request.fullpath : nil) %></p>
+</div>
+<% else %>
+<div class="gk-people-actor" data-search-url="<%= gk_people_actor_search_path %>"
+     data-none="<%= l(:text_gk_people_actor_none_found) %>">
+  <p>
+    <label for="gk_people_actor_q_<%= uid %>"><%= l(:field_gk_people_actor) %> <span class="required">*</span></label>
+    <%= hidden_field_tag GkPeople::Actor::PARAM, chosen&.id, id: "gk_people_actor_person_id_#{uid}", class: 'gk-people-actor-id' %>
+    <%= hidden_field_tag 'gk_people_actor_by', 'search', id: nil %>
+    <span class="gk-people-actor-chosen"<%= ' hidden' unless chosen %>>
+      <strong class="gk-people-actor-name"><%= chosen&.name %><%= gk_people_person_mark(chosen) %></strong>
+      <button type="button" class="gk-people-actor-change"><%= l(:button_gk_people_actor_change) %></button>
+    </span>
+    <input type="search" id="gk_people_actor_q_<%= uid %>" class="gk-people-actor-q" autocomplete="off" size="30"
+           placeholder="<%= l(:text_gk_people_actor_placeholder) %>"<%= ' hidden' if chosen %>>
+    <noscript>
+      <%= select_tag "#{GkPeople::Actor::PARAM}_noscript", options_for_select([['', '']] + GkPeople::Actor.choosable(account).sorted.map { |p| [p.name, p.id] }, chosen&.id), id: "gk_people_actor_noscript_#{uid}" %>
+    </noscript>
+  </p>
+  <p class="gk-people-actor-found" role="listbox" hidden></p>
+  <p><em class="info"><%= gk_people_t_marked(:text_gk_people_actor_info, :account, account, account.name) %></em></p>
+</div>
+<%= javascript_include_tag 'gk_people_actor', plugin: 'gk_people' %>
+<% end %>

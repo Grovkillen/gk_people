@@ -1,0 +1,60 @@
+<%# Organisation: every responsibility with who holds it now, the deputy, the scope and the end date; a vacancy in red,
+    a holder or deputy lacking a required credential in orange %>
+<% html_title l(:label_gk_people_organisation) %>
+<div class="contextual">
+  <% if GkPeople::Responsibilities.manage? %>
+    <%= link_to sprite_icon('add', l(:label_gk_people_responsibility_new)), new_gk_people_responsibility_path, class: 'icon icon-add' %>
+    <% if GkPeople::RoleSync.ready? %><%= link_to sprite_icon('reload', l(:label_gk_people_role_sync)), gk_people_role_sync_path, class: 'icon icon-reload' %><% end %>
+  <% end %>
+</div>
+<h2><%= l(:label_gk_people_organisation) %></h2>
+<%= render partial: 'gk_people/tabs', locals: { current: :organisation } %>
+<p class="gk-people-muted"><%= l(:text_gk_people_organisation_intro) %></p>
+
+<%= form_tag(gk_people_responsibilities_path, method: :get, class: 'gk-people-filter') do %>
+  <fieldset class="box">
+    <label><%= l(:field_gk_people_kind) %>
+      <%= select_tag 'kind', options_for_select([['', '']] + GkPeople::Responsibilities::KINDS.map { |k| [l("label_gk_people_resp_kind_#{k}"), k] }, @kind) %></label>
+    <label><%= l(:label_gk_people_groups) %>
+      <%= select_tag 'group_id', options_for_select([['', '']] + GkPeopleGroup.active.sorted.map { |g| [g.name, g.id] }, @group&.id) %></label>
+    <label><%= l(:label_project) %>
+      <%= select_tag 'project_id', options_for_select([['', '']] + Project.visible.sorted.map { |p| [p.name, p.id] }, @project&.id) %></label>
+    <%= render partial: 'gk_people/filter_buttons', locals: { clear: gk_people_responsibilities_path } %>
+  </fieldset>
+<% end %>
+
+<% creds = GkPeople::Credentials.ready? && GkPeople.feature?('people.credentials') %>
+<% if @responsibilities.empty? %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% else %>
+<table class="list gk-people-list gk-people-org">
+  <thead><tr><th><%= l(:label_gk_people_responsibility) %></th><th><%= l(:field_gk_people_kind) %></th><th><%= l(:label_gk_people_holder) %></th>
+    <th><%= l(:label_gk_people_scope) %></th><th><%= l(:label_gk_people_deputy) %></th><th><%= l(:label_gk_people_valid_to) %></th></tr></thead>
+  <tbody>
+  <% @responsibilities.each do |r| %>
+    <% rows = @held[r.id].to_a %>
+    <% if rows.empty? %>
+      <tr class="gk-people-vacancy">
+        <td class="name"><%= link_to r.name, gk_people_responsibility_path(r) %></td>
+        <td class="kind"><%= gk_people_resp_kind_tag(r.kind) %></td>
+        <td class="vacancy" colspan="4"><strong><%= l(:label_gk_people_vacancy) %></strong></td>
+      </tr>
+    <% else %>
+      <% rows.each_with_index do |a, i| %>
+        <% acting = GkPeople::Responsibilities.unavailable?(a.person, a, User.current.today) %>
+        <% lack = creds ? GkPeople::Credentials.lacking(a.person, r) : [] %>
+        <% lack_deputy = creds && a.deputy ? GkPeople::Credentials.lacking(a.deputy, r) : [] %>
+        <tr class="<%= cycle('odd', 'even') %><%= ' gk-people-lacking-row' if lack.any? %>">
+          <td class="name"><%= link_to(r.name, gk_people_responsibility_path(r)) if i.zero? %></td>
+          <td class="kind"><%= gk_people_resp_kind_tag(r.kind) if i.zero? %></td>
+          <td class="holder"><%= link_to a.person.name, gk_people_person_path(a.person) %><%= gk_people_person_mark(a.person) %><% if acting %> <span class="badge badge-status-locked gk-people-badge"><%= l(:label_gk_people_away) %></span><% end %> <%= gk_people_lacking(lack) %></td>
+          <td class="scope"><%= a.scope_label %></td>
+          <td class="deputy"><% if a.deputy %><%= link_to a.deputy.name, gk_people_person_path(a.deputy) %><%= gk_people_person_mark(a.deputy) %><% if a.deputy_period_covers?(User.current.today) %> <span class="badge badge-status-locked gk-people-badge"><%= l(:label_gk_people_standing_in) %></span><% end %> <%= gk_people_lacking(lack_deputy) %><% end %></td>
+          <td class="valid_to"><%= format_date(a.valid_to) if a.valid_to %></td>
+        </tr>
+      <% end %>
+    <% end %>
+  <% end %>
+  </tbody>
+</table>
+<% end %>

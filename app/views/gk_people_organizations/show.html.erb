@@ -1,0 +1,114 @@
+<% html_title @org.name %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<% manage = GkPeople::Access.manage? %>
+<div class="contextual">
+  <% if manage %>
+    <%= link_to sprite_icon('add', l(:label_gk_people_person_new)), new_gk_people_person_path(organization_id: @org.id, kind: (@org.kind_keys.include?('internal') ? 'internal' : 'external')), class: 'icon icon-add' %>
+    <%= link_to sprite_icon('edit', l(:button_edit)), edit_gk_people_organization_path(@org), class: 'icon icon-edit' %>
+  <% end %>
+  <%# Klar and Slå ihop med... on a quick organization %>
+  <%= gk_people_quick_actions(@org) %>
+</div>
+<h2><%= link_to l(:label_gk_people_organizations), gk_people_organizations_path %> &#187; <%= @org.name %>
+  <% unless @org.active %><span class="badge badge-status-locked gk-people-badge"><%= l(:label_gk_people_inactive) %></span><% end %>
+  <%= gk_people_quick_mark(@org) %> <%= gk_records_verification_badge(@org) if respond_to?(:gk_records_verification_badge) %></h2>
+<%= gk_people_merged_note(@org) %>
+
+<%# Beside each field a reading set, the reading that last set it, as a link %>
+<% og = gk_people_origins(@org) %>
+<% src = ->(attr) { gk_people_origin(@org, attr, origins: og) } %>
+<div class="splitcontent">
+<div class="splitcontentleft">
+  <div class="box gk-people-facts">
+    <table class="attributes">
+      <% if og['name'] %><tr><th><%= l(:field_name) %></th><td><%= @org.name %> <%= src.call(:name) %></td></tr><% end %>
+      <tr><th><%= l(:label_gk_people_org_kinds) %></th><td><%= gk_people_org_kinds(@org) %> <%= src.call(:kind_keys) %></td></tr>
+      <% if @org.org_no.present? %><tr><th><%= l(:label_gk_people_org_no) %></th><td><%= @org.org_no %> <%= src.call(:org_no) %></td></tr><% end %>
+
+      <% if @org.owner_langs.present? %><tr><th><%= l(:label_gk_people_owner) %></th><td><%= @org.owner_langs == '*' ? l(:text_gk_people_owner_all) : @org.owner_langs %></td></tr><% end %>
+      <% if @org.short_name.present? %><tr><th><%= l(:label_gk_people_short_name) %></th><td><%= @org.short_name %></td></tr><% end %>
+      <% if @org.phone.present? %><tr><th><%= l(:label_gk_people_phone) %></th><td><%= @org.phone %></td></tr><% end %>
+      <% if @org.email.present? %><tr><th><%= l(:field_mail) %></th><td><%= mail_to @org.email %></td></tr><% end %>
+      <% if @org.website.present? %><tr><th><%= l(:label_gk_people_website) %></th><td><%= link_to @org.website, @org.website, rel: 'noopener noreferrer', target: '_blank', data: { gk_link_place: 'people' } if @org.website.match?(%r{\Ahttps?://}) %></td></tr><% end %>
+      <% if @org.sni.present? %><tr><th><%= l(:label_gk_people_sni) %></th><td><%= @org.sni %> <%= src.call(:sni) %></td></tr><% end %>
+      <% if @org.org_form.present? %><tr><th><%= l(:label_gk_people_org_form) %></th><td><%= @org.org_form %> <%= src.call(:org_form) %></td></tr><% end %>
+      <% if @org.size_class.present? %><tr><th><%= l(:label_gk_people_size_class) %></th><td><%= @org.size_class %> <%= src.call(:size_class) %></td></tr><% end %>
+      <% if @org.deregistered_on %><tr><th><%= l(:label_gk_people_deregistered_on) %></th><td><%= format_date(@org.deregistered_on) %> <%= src.call(:deregistered_on) %></td></tr><% end %>
+      <% if @org.city.present? %><tr><th><%= l(:label_gk_people_city) %></th><td><%= @org.city %> <%= src.call(:city) %></td></tr><% end %>
+      <% if @org.address.present? %><tr><th><%= l(:label_gk_people_address) %></th><td><%= simple_format(h(@org.address)) %><%= src.call(:address) %></td></tr><% end %>
+      <% if @org.location? %><tr><th><%= l(:label_gk_people_location) %></th><td><%= l(:text_gk_people_location_value, n: @org.location_n.to_s('F'), e: @org.location_e.to_s('F'), crs: @org.location_crs) %> <%= src.call(:location_n) %></td></tr><% end %>
+      <% if @org.country.present? %><tr><th><%= l(:label_gk_people_country) %></th><td><%= @org.country %> <%= src.call(:country) %></td></tr><% end %>
+      <% if @org.synced? %><tr><th><%= l(:label_gk_people_source) %></th><td><%= @org.source %> <%= @org.external_id %></td></tr><% end %>
+      <% if (sid = og['source_id']) %><tr><th><%= l(:label_gk_people_source_id) %></th><td><%= sid.source_id %> <%= src.call(:source_id) %></td></tr><% end %>
+      <%# The text as written, and beside it the sources the organization cites %>
+      <% cited = gk_people_cited(@org) %>
+      <% if @org.info_source.present? || cited.present? %><tr><th><%= l(:label_gk_people_info_source) %></th><td><%= @org.info_source %><% if @org.info_source_on %> <span class="gk-people-muted">(<%= format_date(@org.info_source_on) %>)</span><% end %>
+        <% if cited.present? %><% if @org.info_source.present? %><br><% end %><%= cited %><% end %></td></tr><% end %>
+    </table>
+    <% if @org.notes.present? %><div class="wiki gk-people-notes"><%= simple_format(h(@org.notes)) %></div><% end %>
+  </div>
+</div>
+<div class="splitcontentright">
+  <%# The parent as a link and the children, in a box with its heading inside %>
+  <% if @org.parent || @org.children.any? %>
+  <div class="box gk-people-section">
+    <h3 id="gk-people-org-tree"><%= l(:label_gk_people_org_tree) %></h3>
+    <% if @org.parent %>
+      <p><strong><%= l(:label_gk_people_org_parent) %>:</strong> <%= safe_join(@org.ancestors.reverse.map { |a| link_to(a.name, gk_people_organization_path(a)) }, ' » ') %>
+        <%= src.call(:parent_id) %></p>
+    <% end %>
+    <% kids = @org.children.to_a %>
+    <% if kids.any? %>
+      <p><strong><%= l(:label_gk_people_org_children) %> <%= gk_gui_stuff_count(kids.size) %></strong></p>
+      <ul class="gk-people-org-children">
+        <% kids.each do |c| %><li class="<%= 'gk-people-inactive' unless c.active %>"><%= link_to c.name, gk_people_organization_path(c) %><%= " (#{c.city})" if c.city.present? %></li><% end %>
+      </ul>
+    <% end %>
+  </div>
+  <% end %>
+
+  <% if GkPeople.feature?('people.approval') %>
+  <div class="box gk-people-section">
+    <h3 id="gk-people-approval"><%= l(:label_gk_people_approval) %></h3>
+    <table class="attributes">
+      <tr><th><%= l(:field_status) %></th><td><%= gk_people_approval(@org.approval_status) %></td></tr>
+      <% if @org.approval_valid_to %><tr><th><%= l(:label_gk_people_valid_to) %></th><td><%= format_date(@org.approval_valid_to) %>
+        <% if @org.approval_valid_to < User.current.today %> <span class="badge badge-status-locked gk-people-badge"><%= l(:label_gk_people_expired) %></span><% end %></td></tr><% end %>
+      <% if @org.risk_class.present? %><tr><th><%= l(:label_gk_people_risk_class) %></th><td><%= @org.risk_class %></td></tr><% end %>
+      <% if @org.approved_at %><tr><th><%= l(:label_gk_people_decided) %></th><td><%= @org.approved_by ? gk_people_user(@org.approved_by) : l(:label_gk_records_by_system, default: '-') %>, <%= format_time(@org.approved_at) %></td></tr><% end %>
+    </table>
+    <p class="gk-people-muted"><%= l(:text_gk_people_approval_by_hand) %></p>
+  </div>
+  <% end %>
+  <%= render(partial: 'gk_people_credentials/list', locals: { holder: @org }) if GkPeople::Credentials.ready? && GkPeople.feature?('people.credentials') %>
+  <%# The organization's tags from gk_tags, when tags is there and its function tags.objects is on %>
+  <%= render(partial: 'gk_tags_tags/object_tags', locals: { object: @org }) if defined?(::GkTags::Taggables) %>
+</div>
+</div>
+
+<%= render partial: 'gk_people_organizations/relations', locals: { org: @org } %>
+
+<h3><%= l(:label_gk_people_persons) %> <%= gk_gui_stuff_count(@persons.size) %></h3>
+<%# Contacts in this organization by the quick line, in the box above the list, for whoever may change the
+    organization; while people.quick is on %>
+<% if manage && GkPeople::Quick.on? && GkPeople::Quick.merged_into(@org).nil? %>
+  <%= render partial: 'gk_people_quick/box', locals: { context: "organization:#{@org.id}", box_key: 'people.quick_organization',
+                                                    title: l(:label_gk_people_quick_contacts), open: @persons.empty? } %>
+<% end %>
+<% if @persons.empty? %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% else %>
+<table class="list gk-people-list">
+  <thead><tr><th><%= l(:field_name) %></th><th><%= l(:label_gk_people_title) %></th><th><%= l(:field_mail) %></th><th><%= l(:label_gk_people_account) %></th></tr></thead>
+  <tbody>
+  <% @persons.each do |p| %>
+    <tr class="<%= cycle('odd', 'even') %><%= ' gk-people-inactive' unless p.active %>">
+      <td class="name"><%= gk_people_person_link(p) %> <%= gk_people_quick_mark(p) %></td><td class="title"><%= p.title %></td><td class="email"><%= p.email %></td>
+      <td class="account"><%= gk_people_user(p.user) %></td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+<% end %>
+
+<%= gk_records_list(@org, verification: true) if GkPeople.records? %>

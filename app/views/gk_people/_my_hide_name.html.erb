@@ -1,0 +1,6 @@
+<%# gk_people: one's name hidden from those not signed in (title and organization instead), where
+    one's organization allows it %>
+<p><label for="pref_gk_people_hide_name"><%= l(:label_gk_people_hide_name) %></label>
+  <%= hidden_field_tag 'pref[gk_people_hide_name]', '0', id: nil %>
+  <%= check_box_tag 'pref[gk_people_hide_name]', '1', User.current.pref.gk_people_hide_name == '1', id: 'pref_gk_people_hide_name' %>
+  <em class="info"><%= l(:text_gk_people_hide_name) %></em></p>

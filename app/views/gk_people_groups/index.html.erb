@@ -1,0 +1,36 @@
+<% html_title l(:label_gk_people_groups) %>
+<div class="contextual">
+  <% if GkPeople::Access.manage? %>
+    <%= link_to sprite_icon('add', l(:label_gk_people_group_new)), new_gk_people_group_path, class: 'icon icon-add' %>
+  <% end %>
+</div>
+<h2><%= l(:label_gk_people_groups) %></h2>
+<%= render partial: 'gk_people/tabs', locals: { current: :groups } %>
+<p class="gk-people-muted"><%= l(:text_gk_people_groups_intro) %></p>
+
+<%= form_tag(gk_people_groups_path, method: :get, class: 'gk-people-filter') do %>
+  <fieldset class="box">
+    <label><%= l(:label_search) %> <%= text_field_tag 'q', @q, size: 30 %></label>
+    <label><%= check_box_tag 'active', 'all', params[:active] == 'all' %> <%= l(:label_gk_people_show_inactive) %></label>
+    <%= render partial: 'gk_people/filter_buttons', locals: { clear: gk_people_groups_path } %>
+  </fieldset>
+<% end %>
+
+<% if @groups.empty? %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% else %>
+<table class="list gk-people-list gk-people-groups">
+  <thead><tr><th><%= l(:field_name) %></th><th><%= l(:field_description) %></th><th><%= l(:label_gk_people_members) %></th><th><%= l(:label_gk_people_source) %></th></tr></thead>
+  <tbody>
+  <% @groups.each do |g| %>
+    <tr class="<%= cycle('odd', 'even') %><%= ' gk-people-inactive' unless g.active %>">
+      <td class="name"><%= link_to g.name, gk_people_group_path(g) %></td>
+      <td class="description"><%= truncate(g.description.to_s, length: 120) %></td>
+      <td class="members"><%= link_to @member_counts[g.id].to_i, gk_people_persons_path(group_id: g.id) %></td>
+      <td class="source"><%= g.source %></td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+<span class="pagination"><%= pagination_links_full @pages, @count %></span>
+<% end %>

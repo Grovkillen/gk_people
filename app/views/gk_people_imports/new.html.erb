@@ -1,0 +1,51 @@
+<%# Importera, step one: the file, what it holds and where its facts come from %>
+<% html_title l(:label_gk_people_import) %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<h2><%= link_to l(:label_gk_people_imports), gk_people_imports_path %> &#187; <%= l(:label_gk_people_import_new) %></h2>
+<p class="gk-people-muted"><%= l(:text_gk_people_import_intro) %></p>
+<%= render 'data_controller' %>
+<%# Company data: an administrator only, up to the page's limits; larger files by the rake task %>
+<% if GkPeople::CompanyData.allowed? %>
+  <p class="gk-people-muted"><%= l(:text_gk_people_import_company, max: GkPeople::CompanyData.human_size(GkPeople::CompanyData.limits['page_max_bytes']), rows: GkPeople::CompanyData.limits['page_max_rows'], command: GkPeople::CompanyData.rake_command) %></p>
+<% end %>
+<%# The templates come from the import's own fields, so they can never drift from what is read %>
+<fieldset class="box"><legend><%= l(:label_gk_people_import_templates) %></legend>
+  <p class="gk-people-muted"><%= l(:text_gk_people_import_templates) %></p>
+  <% GkPeople::Import::RESOURCES.each do |res| %>
+    <%# GK GUI Stuff's disclosure: the resource's name folds its columns; the template's download first inside it %>
+    <%= gk_gui_stuff_disclosure(texts: l("label_gk_people_import_#{res}")) do %>
+      <p><%= link_to sprite_icon('download', l(:button_gk_people_import_template)), gk_people_import_template_path(resource: res), class: 'icon icon-download' %></p>
+      <table class="list gk-people-list">
+        <thead><tr><th><%= l(:label_gk_people_import_column) %></th><th><%= l(:field_description) %></th></tr></thead>
+        <tbody>
+        <% GkPeople::Import::FIELDS.fetch(res).each do |f| %>
+          <tr><td class="name"><%= l("label_gk_people_import_field_#{f}") %></td><td class="description"><%= l("text_gk_people_import_help_#{f}") %></td></tr>
+        <% end %>
+        </tbody>
+      </table>
+    <% end %>
+  <% end %>
+</fieldset>
+<%= form_tag(gk_people_imports_path, multipart: true) do %>
+<div class="box tabular">
+  <p><label for="import_resource"><%= l(:label_gk_people_import_resource) %></label>
+    <%= select_tag 'import[resource]', options_for_select(GkPeople::Import::RESOURCES.map { |r| [l("label_gk_people_import_#{r}"), r] }, @resource), id: 'import_resource' %></p>
+  <p><label for="import_file"><%= l(:label_gk_people_import_file) %> <span class="required">*</span></label>
+    <%= file_field_tag 'import[file]', accept: '.csv,text/csv,text/plain,.jsonl,application/x-ndjson', id: 'import_file' %></p>
+  <%# The source's manifest (SCB's scripts write one); a wrong sha256 refuses the file %>
+  <p><label for="import_manifest"><%= l(:label_gk_people_import_manifest) %></label>
+    <%= file_field_tag 'import[manifest]', accept: '.json,application/json', id: 'import_manifest' %>
+    <em class="info"><%= l(:text_gk_people_import_manifest) %></em></p>
+
+  <p><label for="import_source_label"><%= l(:label_gk_people_info_source) %> <span class="required">*</span></label>
+    <%= text_field_tag 'import[source_label]', params.dig(:import, :source_label), size: 50, maxlength: 200, id: 'import_source_label' %>
+    <em class="info"><%= l(:text_gk_people_import_source) %></em></p>
+  <p><label for="import_source_on"><%= l(:label_gk_people_info_source_on) %></label>
+    <%= date_field_tag 'import[source_on]', params.dig(:import, :source_on), id: 'import_source_on' %></p>
+  <p><label for="import_separator"><%= l(:label_gk_people_import_separator) %></label>
+    <%= select_tag 'import[separator]', options_for_select([[l(:label_gk_people_import_auto), 'auto'], [';', ';'], [',', ','], [l(:label_gk_people_import_tab), 'tab']], 'auto'), id: 'import_separator' %></p>
+  <p><label for="import_encoding"><%= l(:label_gk_people_import_encoding) %></label>
+    <%= select_tag 'import[encoding]', options_for_select([[l(:label_gk_people_import_auto), 'auto'], ['UTF-8', 'UTF-8'], ['Windows-1252', 'Windows-1252'], ['ISO-8859-1', 'ISO-8859-1']], 'auto'), id: 'import_encoding' %></p>
+</div>
+<p><%= submit_tag l(:button_gk_people_import_preview) %> <%= link_to l(:button_cancel), gk_people_imports_path %></p>
+<% end %>

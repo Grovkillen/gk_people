@@ -1,0 +1,30 @@
+<%# Administration, Intygstyper: the kinds of credential, who may hold them and how long they are valid %>
+<% html_title l(:label_gk_people_credential_kinds) %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<div class="contextual">
+  <%= link_to sprite_icon('add', l(:label_gk_people_credential_kind_new)), new_gk_people_credential_kind_path, class: 'icon icon-add' %>
+</div>
+<h2><%= l(:label_gk_people_credential_kinds) %></h2>
+<p class="gk-people-muted"><%= l(:text_gk_people_credential_kinds_intro) %></p>
+<% if @kinds.empty? %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% else %>
+<table class="list gk-people-list" data-gk-gui-rowmenu>
+  <thead><tr><th><%= l(:field_name) %></th><th><%= l(:label_gk_people_key) %></th><th><%= l(:label_gk_people_applies_to) %></th>
+    <th><%= l(:label_gk_people_renew_months) %></th><th><%= l(:label_gk_people_in_use) %></th><th><%= l(:field_active) %></th><th></th></tr></thead>
+  <tbody>
+  <% @kinds.each do |k| %>
+    <tr class="<%= cycle('odd', 'even') %><%= ' gk-people-inactive' unless k.active %>">
+      <td class="name"><%= link_to k.name, edit_gk_people_credential_kind_path(k) %></td>
+      <td class="key"><code><%= k.key %></code></td>
+      <td class="applies_to"><span class="gk-people-applies-to gk-people-applies-to-<%= k.applies_to %>"><%= l("label_gk_people_applies_to_#{k.applies_to}") %></span></td>
+      <td class="renew_months"><%= k.renew_months %></td>
+      <td class="in_use"><%= link_to @in_use[k.key].to_i, gk_people_credentials_path(kind: k.key, status: 'all') %></td>
+      <td class="active"><%= gk_people_yes_no(k.active) %></td>
+      <td class="buttons"><%= link_to sprite_icon('edit', l(:button_edit)), edit_gk_people_credential_kind_path(k), class: 'icon icon-edit', data: { gk_gui_row_action: 'keep' } %></td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+<% end %>
+<%= gk_gui_stuff_row_menu %>

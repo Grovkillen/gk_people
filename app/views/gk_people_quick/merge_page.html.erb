@@ -1,0 +1,29 @@
+<% html_title l(:label_gk_people_quick_merge_with, name: @rec.name) %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<% person = @rec.is_a?(GkPeoplePerson) %>
+<h2><%= link_to l(:label_gk_people_to_complete), gk_people_to_complete_path %> &#187; <%= l(:label_gk_people_quick_merge_with, name: @rec.name) %></h2>
+<p class="gk-people-muted"><%= l(:text_gk_people_quick_merge_page) %></p>
+
+<% into = GkPeople::Quick.merged_into(@rec) %>
+<% if into %>
+  <p class="flash warning"><%= l(:text_gk_people_quick_merged_into) %> <%= link_to into.name, person ? gk_people_person_path(into) : gk_people_organization_path(into) %></p>
+<% else %>
+<h3><%= l(:label_gk_people_quick_suggestions) %></h3>
+<% if @suggestions.empty? %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% else %>
+  <% @suggestions.each do |other| %><%= render partial: 'gk_people_quick/suggestion', locals: { rec: @rec, other: other } %><% end %>
+<% end %>
+
+<h3><%= l(:label_search) %></h3>
+<%= form_tag(gk_people_quick_merge_path(GkPeople::Quick.key_of(@rec), @rec.id), method: :get, class: 'gk-people-filter') do %>
+  <fieldset class="box">
+    <label><%= l(:label_search) %> <%= text_field_tag 'q', @q, size: 30 %></label>
+    <%= render partial: 'gk_people/filter_buttons' %>
+  </fieldset>
+<% end %>
+<% if @found %>
+  <% if @found.empty? %><p class="nodata"><%= l(:label_no_data) %></p><% end %>
+  <% @found.each do |other| %><%= render partial: 'gk_people_quick/suggestion', locals: { rec: @rec, other: other } %><% end %>
+<% end %>
+<% end %>

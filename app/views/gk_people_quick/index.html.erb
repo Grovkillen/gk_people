@@ -1,0 +1,80 @@
+<% html_title l(:label_gk_people_to_complete) %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<% manage = GkPeople::Access.manage? %>
+<% badge = ->(r) { respond_to?(:gk_records_verification_badge) ? gk_records_verification_badge(r) : '' } %>
+<h2><%= l(:label_gk_people_to_complete) %></h2>
+<%= render partial: 'gk_people/tabs', locals: { current: :to_complete } %>
+
+<%= form_tag(gk_people_to_complete_path, method: :get, class: 'gk-people-filter') do %>
+  <fieldset class="box">
+    <label><%= check_box_tag 'mine', '1', @mine %> <%= l(:label_gk_people_quick_mine) %></label>
+    <label><%= l(:label_project) %>
+      <%= select_tag 'project_id', content_tag('option', '', value: '') + options_from_collection_for_select(@projects, :id, :name, @project&.id) %></label>
+    <label><%= l(:label_gk_people_organization) %>
+      <%= select_tag 'organization_id', content_tag('option', '', value: '') +
+                                        options_for_select(GkPeopleOrganization.not_merged.active.sorted.limit(500).pluck(:name, :id), @organization&.id) %></label>
+    <%= render partial: 'gk_people/filter_buttons', locals: { clear: gk_people_to_complete_path } %>
+  </fieldset>
+<% end %>
+
+<% suggest = [] %>
+<h3><%= l(:label_gk_people_persons) %> <%= gk_gui_stuff_count(@persons.size) %></h3>
+<% if @persons.empty? %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% else %>
+<div class="autoscroll">
+<table class="list gk-people-list" data-gk-gui-rowmenu>
+  <thead><tr><th><%= l(:field_name) %></th><th><%= l(:label_gk_people_organization) %></th><th><%= l(:label_gk_people_title) %></th>
+    <th><%= l(:field_description) %></th><th><%= l(:label_gk_people_quick_original) %></th><th><%= l(:label_gk_people_quick_created) %></th><th></th></tr></thead>
+  <tbody>
+  <% @persons.each_with_index do |p, i| %>
+    <% s = i < 50 ? GkPeople::Quick.suggestions(p) : [] %>
+    <% suggest << [p, s] if s.any? %>
+    <tr class="<%= cycle('odd', 'even') %>">
+      <td class="name"><%= gk_people_person_link(p) %> <%= badge.call(p) %></td>
+      <td class="organization"><%= gk_people_org_link(p.organization) %> <%= gk_people_quick_mark(p.organization) %></td>
+      <td class="title"><%= p.title %></td>
+      <td class="description"><%= p.notes %></td>
+      <td class="text gk-people-muted"><%= GkPeople::Quick.original_text(p) %></td>
+      <td class="created_on"><%= format_date(p.created_at) %><% if p.created_by %>, <%= gk_people_user(p.created_by) %><% end %></td>
+      <td class="buttons"><%= gk_people_quick_actions(p, suggestions: s.size) if manage %></td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+</div>
+<% end %>
+
+<h3><%= l(:label_gk_people_organizations) %> <%= gk_gui_stuff_count(@orgs.size) %></h3>
+<% if @orgs.empty? %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% else %>
+<div class="autoscroll">
+<table class="list gk-people-list" data-gk-gui-rowmenu>
+  <thead><tr><th><%= l(:field_name) %></th><th><%= l(:label_gk_people_org_no) %></th><th><%= l(:label_gk_people_persons) %></th>
+    <th><%= l(:label_gk_people_quick_created) %></th><th></th></tr></thead>
+  <tbody>
+  <% @orgs.each_with_index do |o, i| %>
+    <% s = i < 50 ? GkPeople::Quick.suggestions(o) : [] %>
+    <% suggest << [o, s] if s.any? %>
+    <tr class="<%= cycle('odd', 'even') %>">
+      <td class="name"><%= link_to o.name, gk_people_organization_path(o) %> <%= badge.call(o) %></td>
+      <td class="org-no"><%= o.org_no %></td>
+      <td class="persons"><%= o.persons.size %></td>
+      <td class="created_on"><%= format_date(o.created_at) %><% if o.created_by %>, <%= gk_people_user(o.created_by) %><% end %></td>
+      <td class="buttons"><%= gk_people_quick_actions(o, suggestions: s.size) if manage %></td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+</div>
+<% end %>
+
+<% if suggest.any? %>
+<h3 id="gk-people-quick-suggestions"><%= l(:label_gk_people_quick_suggestions) %></h3>
+<p class="gk-people-muted"><%= l(:text_gk_people_quick_suggestions) %></p>
+<% suggest.each do |rec, others| %>
+  <% others.each do |other| %><%= render partial: 'gk_people_quick/suggestion', locals: { rec: rec, other: other } %><% end %>
+<% end %>
+<% end %>
+<%= gk_gui_stuff_row_menu %>

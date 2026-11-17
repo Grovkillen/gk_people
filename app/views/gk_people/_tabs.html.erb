@@ -1,0 +1,21 @@
+<%# The registers side by side: Personer, Organisationer, Grupper, Organisation and Intyg (top menu), one bar on all lists %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<div class="tabs gk-people-tabs">
+  <ul>
+    <li><%= link_to l(:label_gk_people_persons), gk_people_persons_path, class: (current == :persons ? 'selected' : nil) %></li>
+    <li><%= link_to l(:label_gk_people_organizations), gk_people_organizations_path, class: (current == :organizations ? 'selected' : nil) %></li>
+    <% if GkPeople.feature?('people.groups') %>
+      <li><%= link_to l(:label_gk_people_groups), gk_people_groups_path, class: (current == :groups ? 'selected' : nil) %></li>
+    <% end %>
+    <% if GkPeople::Responsibilities.ready? && GkPeople.feature?('people.responsibilities') %>
+      <li><%= link_to l(:label_gk_people_organisation), gk_people_responsibilities_path, class: (current == :organisation ? 'selected' : nil) %></li>
+    <% end %>
+    <% if GkPeople::Credentials.ready? && GkPeople.feature?('people.credentials') %>
+      <li><%= link_to l(:label_gk_people_credentials), gk_people_credentials_path, class: (current == :credentials ? 'selected' : nil) %></li>
+    <% end %>
+    <%# Att komplettera, the quick contacts still to complete; while people.quick is on %>
+    <% if GkPeople::Quick.on? %>
+      <li><%= link_to l(:label_gk_people_to_complete), gk_people_to_complete_path, class: (current == :to_complete ? 'selected' : nil) %></li>
+    <% end %>
+  </ul>
+</div>

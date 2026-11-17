@@ -1,0 +1,28 @@
+<% html_title l(:label_gk_people_processing) %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<h2><%= l(:label_gk_people_processing) %></h2>
+<p class="gk-people-muted"><%= l(:text_gk_people_processing_intro) %></p>
+<% if @missing.positive? %>
+  <p class="flash error" id="gk-people-processing-missing"><%= l(:text_gk_people_processing_missing, count: @missing) %></p>
+<% else %>
+  <p class="flash notice" id="gk-people-processing-complete"><%= l(:text_gk_people_processing_complete) %></p>
+<% end %>
+<table class="list gk-people-processing" data-gk-gui-rowmenu>
+  <thead><tr><th><%= l(:label_gk_people_pp_table) %></th><th><%= l(:label_gk_people_pp_owner) %></th><th><%= l(:label_gk_people_pp_purpose) %></th>
+    <th><%= l(:label_gk_people_pp_basis) %></th><th><%= l(:label_gk_people_pp_retention) %></th><th><%= l(:label_gk_people_pp_visible) %></th><th></th></tr></thead>
+  <tbody>
+  <% @entries.each do |e| %>
+    <tr id="table-<%= e.table %>" class="<%= cycle('odd', 'even') %><%= ' gk-people-pp-missing' if e.missing? %>">
+      <td class="name gk-people-pp-table"><code><%= e.table %></code><br><span class="gk-people-muted"><%= e.columns.join(', ') %></span></td>
+      <td class="owner"><%= e.owner %></td>
+      <td class="description"><%= e.missing? ? content_tag(:strong, l(:text_gk_people_pp_no_purpose)) : e.purpose %><% if e.written? %> <span class="badge badge-status-locked gk-people-badge"><%= l(:label_gk_people_pp_written) %></span><% end %></td>
+      <td class="basis"><%= e.legal_basis.present? ? content_tag(:span, l("label_gk_people_basis_#{e.legal_basis}"), class: "gk-people-basis gk-people-basis-#{e.legal_basis}") : '' %></td>
+      <td class="text retention"><%= e.retention %><% e.rule_texts.each do |t| %><br><span class="gk-people-pp-rule"><%= t %></span><% end %></td>
+      <td class="text visible_to"><%= e.visible_to %></td>
+      <td class="buttons"><%= link_to sprite_icon('edit', l(:button_edit)), edit_gk_people_processing_path(e.table), class: 'icon icon-edit', data: { gk_gui_row_action: 'keep' } %></td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+<p class="gk-people-muted"><%= l(:text_gk_people_processing_no_ops) %></p>
+<%= gk_gui_stuff_row_menu %>

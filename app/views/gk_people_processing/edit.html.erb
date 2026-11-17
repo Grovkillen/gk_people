@@ -1,0 +1,20 @@
+<% html_title @entry.table %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<h2><%= link_to l(:label_gk_people_processing), gk_people_processing_index_path %> &#187; <code><%= @entry.table %></code></h2>
+<%= error_messages_for @row %>
+<%= form_tag gk_people_processing_path(@entry.table), method: :patch, id: 'gk-people-processing-form' do %>
+<div class="box tabular">
+  <p><label><%= l(:label_gk_people_pp_owner) %></label><%= @entry.owner %> <span class="gk-people-muted">(<%= @entry.columns.join(', ') %>)</span></p>
+  <p><label for="processing_purpose"><%= l(:label_gk_people_pp_purpose) %></label>
+    <%= text_area_tag 'processing[purpose]', @row.purpose, rows: 3, cols: 70, id: 'processing_purpose', placeholder: @entry.category && l("text_gk_people_pp_#{@entry.category}_purpose") %></p>
+  <p><label for="processing_legal_basis"><%= l(:label_gk_people_pp_basis) %></label>
+    <%= select_tag 'processing[legal_basis]', options_for_select([[@entry.category ? "#{l(:label_gk_people_pp_declared)}: #{l("label_gk_people_basis_#{GkPeople::Processing::CATEGORIES[@entry.category]}")}" : '', '']] +
+          GkPeople::Privacy::LEGAL_BASES.map { |b| [l("label_gk_people_basis_#{b}"), b] }, @row.legal_basis), id: 'processing_legal_basis' %></p>
+  <p><label for="processing_retention"><%= l(:label_gk_people_pp_retention) %></label>
+    <%= text_area_tag 'processing[retention]', @row.retention, rows: 2, cols: 70, id: 'processing_retention', placeholder: @entry.category && l("text_gk_people_pp_#{@entry.category}_retention") %></p>
+  <p><label for="processing_visible_to"><%= l(:label_gk_people_pp_visible) %></label>
+    <%= text_area_tag 'processing[visible_to]', @row.visible_to, rows: 2, cols: 70, id: 'processing_visible_to', placeholder: @entry.category && l("text_gk_people_pp_#{@entry.category}_visible") %></p>
+  <p class="gk-people-muted"><%= l(:text_gk_people_pp_edit_hint) %></p>
+</div>
+<%= submit_tag l(:button_save) %>
+<% end %>

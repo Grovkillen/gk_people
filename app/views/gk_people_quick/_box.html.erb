@@ -1,0 +1,24 @@
+<% fields = GkPeople::QuickParse::MOVABLE.map { |f| [f, GkPeople::Quick.field_label(f)] } %>
+<% cfg = { save: gk_people_quick_path, preview: gk_people_quick_preview_path, context: context, fields: fields,
+           texts: { move: l(:text_gk_people_quick_move),
+                    new_org: l(:text_gk_people_quick_new_org), known_org: l(:text_gk_people_quick_known_org),
+                    uncertain: l(:text_gk_people_quick_uncertain), cancel: l(:button_cancel) } } %>
+<% inner = capture do %>
+  <%= form_tag gk_people_quick_path, class: 'gk-people-quick', data: { gk_people_quick: cfg.to_json } do %>
+    <%= hidden_field_tag 'context', context, id: nil %>
+    <p class="gk-people-quick-line">
+      <%= text_field_tag 'line', '', class: 'gk-people-quick-input', autocomplete: 'off', id: nil, size: 60,
+                         placeholder: l(:text_gk_people_quick_placeholder), 'aria-label': title %>
+      <%# no disable_with: the field saves line after line without reload, and a disabled button stops Enter %>
+      <%= submit_tag l(:button_save), name: nil, class: 'gk-people-quick-submit', data: { disable_with: false } %>
+    </p>
+    <div class="gk-people-quick-preview" aria-live="polite"></div>
+    <p class="gk-people-muted gk-people-quick-help"><%= GkPeople::Quick.help_text %></p>
+    <ul class="gk-people-quick-rows" aria-live="polite"></ul>
+  <% end %>
+<% end %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<%= javascript_include_tag 'gk_people_quick', plugin: 'gk_people' %>
+<div class="gk-people-quick-box">
+<%= gk_gui_stuff_choices_box(box_key, title, open: open) { inner } %>
+</div>

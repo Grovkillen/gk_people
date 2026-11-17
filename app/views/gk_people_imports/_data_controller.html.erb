@@ -1,0 +1,7 @@
+<%# The controller of the personal data an import reads in: the organization the setting names; without it the
+    line says so, and an administrator is told where to set it %>
+<% org = GkPeople::CompanyData.data_controller %>
+<p class="gk-people-data-controller"><%= GkPeople::CompanyData.data_controller_text %></p>
+<% if org.nil? && User.current.admin? %>
+  <p class="warning"><%= l(:text_gk_people_data_controller_set) %> <%= link_to l(:label_settings), plugin_settings_path('gk_people') %></p>
+<% end %>

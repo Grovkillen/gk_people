@@ -1,0 +1,34 @@
+<%# A credential: the kind is chosen once (correcting it is a revocation and a new one), the dates, issuer, number and
+    the proof. Without an end date the kind's months from the issue are used. %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<%= error_messages_for @credential %>
+<% c = @credential %>
+<% holder_type = c.organization_id ? 'organization' : 'person' %>
+<% kinds = GkPeopleCredentialKind.active.for_holder(holder_type).sorted.to_a %>
+<%= form_tag((c.persisted? ? gk_people_credential_path(c) : gk_people_credentials_path), method: (c.persisted? ? :patch : :post), multipart: true) do %>
+  <%= hidden_field_tag(:person_id, c.person_id) if c.person_id && !c.persisted? %>
+  <%= hidden_field_tag(:organization_id, c.organization_id) if c.organization_id && !c.persisted? %>
+<div class="box tabular">
+  <p><label for="credential_credential_key"><%= l(:label_gk_people_credential) %> <span class="required">*</span></label>
+    <% if c.persisted? %><strong><%= c.kind&.name || c.credential_key %></strong>
+    <% else %>
+      <%= select_tag 'credential[credential_key]', options_for_select(kinds.map { |k| [k.renew_months ? "#{k.name} (#{l(:text_gk_people_months, count: k.renew_months)})" : k.name, k.key] }, c.credential_key), id: 'credential_credential_key' %>
+    <% end %></p>
+  <p><label for="credential_issued_on"><%= l(:label_gk_people_issued_on) %></label>
+    <%= date_field_tag 'credential[issued_on]', c.issued_on, id: 'credential_issued_on' %></p>
+  <p><label for="credential_valid_to"><%= l(:label_gk_people_valid_to) %></label>
+    <%= date_field_tag 'credential[valid_to]', c.valid_to, id: 'credential_valid_to' %>
+    <% unless c.persisted? %><em class="info"><%= l(:text_gk_people_valid_to_from_kind) %></em><% end %></p>
+  <p><label for="credential_issuer"><%= l(:label_gk_people_issuer) %></label>
+    <%= text_field_tag 'credential[issuer]', c.issuer, size: 50, id: 'credential_issuer' %></p>
+  <p><label for="credential_reference"><%= l(:label_gk_people_reference) %></label>
+    <%= text_field_tag 'credential[reference]', c.reference, size: 30, id: 'credential_reference' %></p>
+  <p><label for="credential_note"><%= l(:field_notes) %></label>
+    <%= text_area_tag 'credential[note]', c.note, rows: 2, cols: 60, id: 'credential_note' %></p>
+  <p><label><%= l(:label_gk_people_proof) %></label>
+    <% if c.persisted? && c.attachments.any? %><span class="gk-people-attachments"><% c.attachments.each do |a| %><%= link_to_attachment a, class: 'icon icon-attachment', icon: 'attachment' %> <% end %></span><br><% end %>
+    <%= render partial: 'attachments/form', locals: { container: c } %></p>
+</div>
+<p><%= submit_tag(c.persisted? ? l(:button_save) : l(:button_create)) %>
+  <%= link_to l(:button_cancel), (c.person_id ? gk_people_person_path(c.person_id) : gk_people_organization_path(c.organization_id)) %></p>
+<% end %>

@@ -1,0 +1,11 @@
+<%# Administration, a shared account: who stands at this computer (the matrix), and a link to change it %>
+<% rows = GkPeople::Actor.rows(user).to_a %>
+<p><label><%= l(:label_gk_people_actor_at_computer) %></label>
+  <% if rows.any? %>
+    <% names = rows.map { |r| [r.principal_type, r.principal_id] }.uniq.map { |t, id| GkPeople::Actor.principal_name(t, id) }.compact %>
+    <%= names.join(', ') %>
+    <span class="gk-people-muted"><%= l(:text_gk_people_actor_rows, count: rows.size) %></span>
+  <% else %>
+    <strong><%= l(:text_gk_people_actor_no_groups_admin) %></strong>
+  <% end %>
+  <%= link_to l(:button_change), gk_people_shared_account_path(user.id), class: 'icon icon-edit' %></p>

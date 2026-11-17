@@ -1,0 +1,57 @@
+<%# role_sync on a responsibility: the rules (which role, where), whether they are on, and who has which role now %>
+<% r = @responsibility %>
+<% manage = GkPeople::Responsibilities.manage? %>
+<% rules_admin = User.current.admin? %>
+<% rules = r.role_rules.includes(:role, :project).order(:id).to_a %>
+<h3 id="gk-people-role-sync"><%= l(:label_gk_people_roles_following) %></h3>
+<p class="gk-people-muted">
+  <% if !GkPeople::RoleSync.enabled? %><%= l(:text_gk_people_role_sync_off) %>
+  <% elsif !r.role_sync %><%= l(:text_gk_people_role_sync_off_here) %>
+  <% else %><%= l(:text_gk_people_role_sync_on_here) %><% end %>
+  <% if manage %><%= link_to l(:label_gk_people_role_sync), gk_people_role_sync_path %><% end %></p>
+<%# Lägg till regel sits in the box above the rules, minimized, open when there is none %>
+<% if rules_admin %>
+<% rule_box = capture do %>
+  <%= form_tag add_rule_gk_people_responsibility_path(r), class: 'gk-people-inline-form gk-people-rule-form' do %>
+    <%= select_tag 'role_id', options_for_select(Role.givable.sorted.map { |x| [x.name, x.id] }) %>
+    <%= select_tag 'target', options_for_select(GkPeopleRoleRule::TARGETS.select { |t| t != 'project_type' || defined?(GkProjectTypesType) }.map { |t| [l("label_gk_people_rule_target_#{t}"), t] }) %>
+    <%= select_tag 'project_id', options_for_select([['', '']] + Project.where(status: [Project::STATUS_ACTIVE, Project::STATUS_CLOSED]).sorted.map { |p| [p.name, p.id] }), title: l(:label_project) %>
+    <% if defined?(GkProjectTypesType) %><%= select_tag 'project_type_id', options_for_select([['', '']] + GkProjectTypesType.active.map { |t| [t.name, t.id] }), title: l(:label_gk_people_project_type) %><% end %>
+    <%= submit_tag l(:button_gk_people_add_rule) %>
+  <% end %>
+  <p class="gk-people-muted"><%= l(:text_gk_people_rule_hint) %></p>
+<% end %>
+<% box_title = l(:button_gk_people_add_rule) %>
+<%= gk_gui_stuff_choices_box('people.rule_add', box_title, open: rules.empty?) { rule_box } %>
+<% elsif manage %>
+  <p class="gk-people-muted"><%= l(:text_gk_people_rules_admin_only) %></p>
+<% end %>
+<% if rules.any? %>
+<table class="list gk-people-list" data-gk-gui-rowmenu>
+  <thead><tr><th><%= l(:label_role) %></th><th><%= l(:label_gk_people_rule_where) %></th><th></th></tr></thead>
+  <tbody>
+  <% rules.each do |rule| %>
+    <tr class="<%= cycle('odd', 'even') %>"><td class="role"><%= rule.role&.name %></td><td class="target"><span class="gk-people-rule-target gk-people-rule-target-<%= rule.target %>"><%= rule.target_label %></span></td>
+      <td class="buttons"><% if rules_admin %><%= link_to sprite_icon('del', l(:button_delete)), remove_rule_gk_people_responsibility_path(r, rule_id: rule.id), method: :post, data: gk_gui_stuff_confirm_data(l(:text_gk_people_remove_rule_confirm)).merge(gk_gui_row_action: true), class: 'icon icon-del' %><% end %></td></tr>
+  <% end %>
+  </tbody>
+</table>
+<% end %>
+<% grants = GkPeopleRoleGrant.active.joins(:rule).where(gk_people_role_rules: { responsibility_id: r.id }).includes(:person, :project, :role, :removed_by).order(:project_id).to_a %>
+<% if grants.any? %>
+<table class="list gk-people-list">
+  <thead><tr><th><%= l(:label_gk_people_holder) %></th><th><%= l(:label_project) %></th><th><%= l(:label_role) %></th><th><%= l(:label_gk_people_since) %></th><th></th></tr></thead>
+  <tbody>
+  <% grants.each do |g| %>
+    <tr class="<%= cycle('odd', 'even') %><%= ' gk-people-lacking-row' if g.deviating? %>">
+      <td class="holder"><%= g.person ? link_to(g.person.name, gk_people_person_path(g.person)) : '' %><% if g.via == 'deputy' %> <span class="badge badge-status-locked gk-people-badge gk-people-via gk-people-via-deputy"><%= l(:label_gk_people_standing_in) %></span><% end %></td>
+      <td class="project"><%= g.project ? link_to(g.project.name, settings_project_path(g.project, tab: 'members')) : '' %></td>
+      <td class="role"><%= g.role&.name %></td>
+      <td class="since"><%= format_date(g.granted_at) %></td>
+      <td class="text"><% if g.deviating? %><span class="badge badge-private gk-people-badge gk-people-lacking"><%= l(:label_gk_people_deviation) %></span> <span class="gk-people-muted"><%= gk_people_t_marked(:text_gk_people_removed_by_hand, :name, g.removed_by, gk_people_name(g.removed_by), at: format_time(g.removed_by_hand_at)) %></span>
+          <% elsif g.covered? %><span class="gk-people-muted"><%= l(:text_gk_people_role_covered) %></span><% end %></td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+<% end %>

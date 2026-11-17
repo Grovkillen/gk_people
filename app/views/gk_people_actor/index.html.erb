@@ -1,0 +1,37 @@
+<%# actor_records: every save on a shared account with the person given, newest first. The person is named (and
+    linked, with the mark) only for one who may see the person register; anyone else gets records' neutral text,
+    also for a removed person (gk_people_actor_person, shared with the line under a journal), and the person filter is not carried (the controller ignores it for them) %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<% html_title l(:label_gk_people_actor_records) %>
+<h2><%= l(:label_gk_people_actor_records) %></h2>
+<p class="nodata gk-people-intro" style="font-size: 1em;"><%= l(:text_gk_people_actor_records_intro) %></p>
+<%= form_tag gk_people_actor_records_path, method: :get do %>
+  <fieldset><legend><%= l(:label_filter_plural) %></legend>
+    <label><%= l(:label_issue) %> <%= text_field_tag 'issue_id', params[:issue_id], size: 6 %></label>
+    <%= hidden_field_tag 'person_id', params[:person_id] if params[:person_id].present? && gk_people_view? %>
+    <label><%= l(:label_gk_people_date_from) %> <%= date_field_tag 'from', params[:from] %></label>
+    <label><%= l(:label_gk_people_date_to) %> <%= date_field_tag 'to', params[:to] %></label>
+    <%= render partial: 'gk_people/filter_buttons' %>
+  </fieldset>
+<% end %>
+<% if @records.empty? %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% else %>
+<table class="list">
+  <thead><tr><th><%= l(:label_date) %></th><th><%= l(:label_gk_people_actor_target) %></th><th><%= l(:field_gk_people_actor) %></th>
+    <th><%= l(:label_gk_people_actor_account) %></th><th><%= l(:label_gk_people_actor_what) %></th></tr></thead>
+  <tbody>
+  <% @records.each do |r| %>
+    <tr class="<%= cycle('odd', 'even') %>">
+      <td class="date"><%= format_time(r.captured_at) %></td>
+      <td class="subject"><%= gk_people_actor_target(r) %></td>
+      <td class="actor"><%= gk_people_actor_person(r.person) %></td>
+      <td class="account"><%= gk_people_user(r.user) %></td>
+      <td class="action"><span class="gk-people-actor-action gk-people-actor-action-<%= r.action %>"><%= r.journal_id && r.issue ? link_to(l("label_gk_people_actor_action_#{r.action}"), issue_path(r.issue, anchor: "change-#{r.journal_id}")) : l("label_gk_people_actor_action_#{r.action}") %></span>
+        <% d = r.details_hash %><% if d['hours'] %> <span class="gk-people-muted"><%= l_hours(d['hours']) %>, <%= d['spent_on'] %></span><% end %></td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+<span class="pagination"><%= pagination_links_full @pages, @count %></span>
+<% end %>

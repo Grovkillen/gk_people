@@ -1,0 +1,21 @@
+<%# Mitt konto: one's own PIN for shared computers that want one %>
+<% html_title l(:label_gk_people_my_pin) %>
+<h2><%= link_to l(:label_my_account), my_account_path %> &#187; <%= l(:label_gk_people_my_pin) %></h2>
+<p><%= l(:text_gk_people_my_pin) %></p>
+<% if GkPeople::Pin.set?(@person) %>
+  <p class="gk-people-muted"><%= l(:text_gk_people_pin_set_at, at: format_time(@person.pin_set_at)) %></p>
+<% end %>
+<%= form_tag gk_people_my_pin_path, autocomplete: 'off' do %>
+  <div class="box tabular">
+    <% if User.current.hashed_password.present? %>
+      <p><label for="password"><%= l(:field_password) %> <span class="required">*</span></label>
+        <%= password_field_tag 'password', nil, size: 25, autocomplete: 'current-password' %></p>
+    <% end %>
+    <p><label for="pin"><%= l(:field_gk_people_new_pin) %> <span class="required">*</span></label>
+      <%= password_field_tag 'pin', nil, size: 10, inputmode: 'numeric', autocomplete: 'off' %>
+      <em class="info"><%= l(:text_gk_people_pin_format) %></em></p>
+    <p><label for="pin_again"><%= l(:field_gk_people_new_pin_again) %> <span class="required">*</span></label>
+      <%= password_field_tag 'pin_again', nil, size: 10, inputmode: 'numeric', autocomplete: 'off' %></p>
+  </div>
+  <%= submit_tag l(:button_save) %>
+<% end %>

@@ -1,0 +1,19 @@
+<%# The panel of the shared computer's part in GK GUI Stuff's top band (under the part, a sheet on a phone; the band
+    draws its heading): the account and the minutes left, which gk_people_actor.js counts down, with Byt person… and
+    Klar; nobody chosen: Vem är du?. given: the session's choice. The stylesheet and the script are linked here, since
+    this is drawn in the body (after the head is written); the script also warns a minute before the choice runs out. %>
+<%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %>
+<% back = GkPeople::Actor.band_back(self) %>
+<% if given %>
+  <% left = GkPeople::Actor.seconds_left(session, User.current) %>
+  <p><%= t(:text_gk_people_actor_band_detail_html, account: User.current.name, minutes: content_tag(:span, (left / 60.0).ceil, class: 'gk-people-actor-left')) %></p>
+  <div class="gk-gui-stuff-popover-buttons">
+    <%= button_to l(:button_gk_people_actor_change_person), gk_people_actor_who_path, method: :get, params: back ? { back_url: back } : {} %>
+    <%= button_to l(:button_gk_people_actor_done), gk_people_actor_done_path %>
+  </div>
+  <%= javascript_include_tag 'gk_people_actor', plugin: 'gk_people' %>
+<% else %>
+  <div class="gk-gui-stuff-popover-buttons">
+    <%= button_to l(:label_gk_people_actor_who), gk_people_actor_who_path, method: :get, params: back ? { back_url: back } : {} %>
+  </div>
+<% end %>

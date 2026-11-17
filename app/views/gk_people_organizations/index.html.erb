@@ -1,0 +1,54 @@
+<%# The box Taggar in the sidebar (tags), from the list's own ids before paging %>
+<% if respond_to?(:gk_tags_sidebar_box) && @gk_tags_ids_sql %><% content_for :sidebar do %><%= gk_tags_sidebar_box('GkPeopleOrganization', @gk_tags_ids_sql) %><% end %><% end %>
+<% html_title l(:label_gk_people_organizations) %>
+<div class="contextual">
+  <% if GkPeople::Access.manage? %>
+    <%= link_to sprite_icon('add', l(:label_gk_people_organization_new)), new_gk_people_organization_path, class: 'icon icon-add' %>
+    <%= link_to sprite_icon('import', l(:label_gk_people_import)), gk_people_imports_path, class: 'icon icon-import' %>
+  <% end %>
+</div>
+<h2><%= l(:label_gk_people_organizations) %></h2>
+<%= render partial: 'gk_people/tabs', locals: { current: :organizations } %>
+
+<% approval = GkPeople.feature?('people.approval') %>
+<%= form_tag(gk_people_organizations_path, method: :get, class: 'gk-people-filter') do %>
+  <% Array(params[:tag]).each do |tg| %><%= hidden_field_tag 'tag[]', tg, id: nil %><% end %>
+  <fieldset class="box">
+    <label><%= l(:label_search) %> <%= text_field_tag 'q', @q, size: 30, placeholder: l(:text_gk_people_search_orgs) %></label>
+    <label><%= l(:label_gk_people_org_kinds) %>
+      <%= select_tag 'kind', content_tag('option', '', value: '') + gk_people_org_kind_options(params[:kind]) %></label>
+    <label><%= l(:label_gk_people_city) %> <%= text_field_tag 'city', params[:city], size: 12 %></label>
+    <label><%= l(:label_gk_people_info_source) %> <%= text_field_tag 'info_source', params[:info_source], size: 16 %></label>
+    <% if approval %><label><%= l(:label_gk_people_approval) %>
+      <%= select_tag 'approval_status', content_tag('option', '', value: '') + options_for_select(GkPeople::APPROVAL.map { |s| [l("label_gk_people_approval_#{s}"), s] }, params[:approval_status]) %></label><% end %>
+    <label><%= check_box_tag 'active', 'all', params[:active] == 'all' %> <%= l(:label_gk_people_show_inactive) %></label>
+    <%= render partial: 'gk_people/filter_buttons', locals: { clear: gk_people_organizations_path } %>
+  </fieldset>
+<% end %>
+
+<% if @orgs.empty? %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% else %>
+<div class="autoscroll">
+<table class="list gk-people-list">
+  <thead><tr>
+    <th><%= l(:field_name) %></th><th><%= l(:label_gk_people_org_kinds) %></th><th><%= l(:label_gk_people_org_no) %></th><th><%= l(:label_gk_people_city) %></th>
+    <% if approval %><th><%= l(:label_gk_people_approval) %></th><% end %><th><%= l(:label_gk_people_persons) %></th><th><%= l(:label_gk_people_source) %></th>
+  </tr></thead>
+  <tbody>
+  <% @orgs.each do |o| %>
+    <tr class="<%= cycle('odd', 'even') %><%= ' gk-people-inactive' unless o.active %>">
+      <td class="name"><%= gk_people_org_link(o) %> <%= gk_people_quick_mark(o) %></td>
+      <td class="kinds"><%= gk_people_org_kinds(o) %></td>
+      <td class="org-no"><%= o.org_no %></td>
+      <td class="city"><%= o.city %></td>
+      <% if approval %><td class="approval"><%= gk_people_approval(o.approval_status) %></td><% end %>
+      <td class="persons"><%= link_to @person_counts[o.id].to_i, gk_people_persons_path(organization_id: o.id) %></td>
+      <td class="source"><%= o.source %></td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+</div>
+<span class="pagination"><%= pagination_links_full @pages, @count %></span>
+<% end %>

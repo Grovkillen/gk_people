@@ -1,0 +1,15 @@
+<%# The mail the one looked as would get about the issue, rendered and never sent %>
+<div class="gk-people-see-as-mail-preview" data-title="<%= l(:label_gk_people_see_as_mail) %>" data-cancel="<%= l(:button_close) %>">
+  <% if @error %>
+    <div class="flash error"><%= l(:text_gk_people_see_as_mail_failed) %></div>
+  <% elsif !@visible %>
+    <p class="nodata" style="font-size: 1em;"><%= l(:text_gk_people_see_as_mail_not_visible, who: @record.target_label) %></p>
+  <% else %>
+    <p class="gk-people-muted"><%= l(:text_gk_people_see_as_mail_never_sent) %>
+      <% if @would_get == true %><%= l(:text_gk_people_see_as_mail_would_get, who: @record.target_label) %>
+      <% elsif @would_get == false %><%= l(:text_gk_people_see_as_mail_would_not_get, who: @record.target_label) %>
+      <% else %><%= l(:text_gk_people_see_as_mail_depends) %><% end %></p>
+    <p><strong><%= l(:field_subject) %>:</strong> <%= @subject %></p>
+    <iframe class="gk-people-see-as-mail-frame" sandbox="" srcdoc="<%= @html %>" title="<%= @subject %>"></iframe>
+  <% end %>
+</div>

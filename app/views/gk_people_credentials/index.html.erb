@@ -1,0 +1,39 @@
+<%# Intyg: what needs attention (expiring, or lapsed and not replaced) or all, by kind and holder; only what the viewer
+    may see (expired ones of a person for herself and handlers) %>
+<% html_title l(:label_gk_people_credentials) %>
+<h2><%= l(:label_gk_people_credentials) %></h2>
+<%= render partial: 'gk_people/tabs', locals: { current: :credentials } %>
+<p class="gk-people-muted"><%= l(:text_gk_people_credentials_intro, days: GkPeople::Credentials.warn_days) %></p>
+
+<%= form_tag(gk_people_credentials_path, method: :get, class: 'gk-people-filter') do %>
+  <fieldset class="box">
+    <label><%= l(:field_status) %>
+      <%= select_tag 'status', options_for_select([[l(:label_gk_people_cred_attention), 'attention'], [l(:label_all), 'all']], @status) %></label>
+    <label><%= l(:label_gk_people_credential) %>
+      <%= select_tag 'kind', options_for_select([['', '']] + @kinds.map { |k| [k.name, k.key] }, @kind) %></label>
+    <label><%= l(:label_gk_people_holder) %>
+      <%= select_tag 'holder', options_for_select([['', ''], [l(:label_gk_people_persons), 'person'], [l(:label_gk_people_organizations), 'organization']], @holder_type) %></label>
+    <%= render partial: 'gk_people/filter_buttons', locals: { clear: gk_people_credentials_path } %>
+  </fieldset>
+<% end %>
+
+<% if @credentials.empty? %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% else %>
+<table class="list gk-people-list gk-people-credentials">
+  <thead><tr><th><%= l(:label_gk_people_holder) %></th><th><%= l(:label_gk_people_credential) %></th><th><%= l(:label_gk_people_issued_on) %></th>
+    <th><%= l(:label_gk_people_valid_to) %></th><th><%= l(:field_status) %></th><th><%= l(:label_gk_people_issuer) %></th></tr></thead>
+  <tbody>
+  <% @credentials.each do |c| %>
+    <tr class="<%= cycle('odd', 'even') %>">
+      <td class="name"><%= c.person ? link_to(c.person.name, gk_people_person_path(c.person, anchor: 'gk-people-credentials')) : link_to(c.organization&.name.to_s, gk_people_organization_path(c.organization_id, anchor: 'gk-people-credentials')) %></td>
+      <td class="credential"><%= gk_people_credential_kind_tag(c) %></td>
+      <td class="issued_on"><%= format_date(c.issued_on) if c.issued_on %></td>
+      <td class="valid_to"><%= format_date(c.valid_to) if c.valid_to %></td>
+      <td class="status"><%= gk_people_credential_status(c) %></td>
+      <td class="issuer"><%= c.issuer %></td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+<% end %>

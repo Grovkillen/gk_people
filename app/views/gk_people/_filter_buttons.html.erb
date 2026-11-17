@@ -1,0 +1,11 @@
+<%# The filter's Verkställ and Återställ as core draws them above its lists (links with core's icons), so that they look
+    the same as everywhere else; a submit button that is not seen keeps Enter in a field sending the form.
+    Locals: clear (the list's own path; no Återställ without it). %>
+<% clear = local_assigns[:clear] %>
+<%= submit_tag l(:button_apply), name: nil, class: 'gk-people-filter-enter', tabindex: -1, 'aria-hidden': 'true' %>
+<span class="buttons gk-people-filter-buttons">
+  <%= link_to sprite_icon('checked', l(:button_apply)), '#', class: 'icon icon-checked', data: { gk_people_submit: '' } %>
+  <% if clear %><%= link_to sprite_icon('reload', l(:button_clear)), clear, class: 'icon icon-reload' %><% end %>
+</span>
+<%# Verkställ sends the form round it (gk_people_forms.js) %>
+<%= javascript_include_tag 'gk_people_forms', plugin: 'gk_people' %>

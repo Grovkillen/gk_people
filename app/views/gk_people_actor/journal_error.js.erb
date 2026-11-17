@@ -1,0 +1,13 @@
+<%# The reply to core's remote edit of a note when no one is chosen at a shared computer: core's link asks for a script
+    and runs it (as core's journals/edit.js.erb), so the reply puts the message over the note's form. Plain DOM, the
+    message as text. Locals: form (the form's id), text (the message). %>
+<%# gk-u U2: core's remote note edit runs a script reply, so the message is set from this template %>
+(function () {
+  var f = document.getElementById(<%= raw form.to_json %>);
+  if (!f) return;
+  f.querySelectorAll('.gk-people-actor-error').forEach(function (x) { x.remove(); });
+  var p = document.createElement('p');
+  p.className = 'flash error gk-people-actor-error';
+  p.textContent = <%= raw ERB::Util.json_escape(text.to_json) %>;
+  f.insertBefore(p, f.firstChild);
+})();

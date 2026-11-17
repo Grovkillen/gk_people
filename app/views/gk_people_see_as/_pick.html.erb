@@ -1,0 +1,9 @@
+<%# One choice: a pill whose text is the button that starts Se som as it (the form is the chooser's); the mark after
+    the name, a group's word and the caller's note as the pill's note %>
+<% if p.is_a?(Group) %>
+  <%= gk_gui_stuff_pill(safe_join([p.lastname, gk_people_mark(p)]), note: l(:label_group),
+                        button: { type: 'submit', name: 'pick', value: "group:#{p.id}" }, html: { class: 'gk-people-pick' }) %>
+<% else %>
+  <%= gk_gui_stuff_pill(safe_join([p.name, gk_people_mark(p)]), note: note.presence,
+                        button: { type: 'submit', name: 'pick', value: "person:#{p.id}" }, html: { class: 'gk-people-pick' }) %>
+<% end %>

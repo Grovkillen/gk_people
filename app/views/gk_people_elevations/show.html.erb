@@ -1,0 +1,46 @@
+<% html_title l(:label_gk_people_elevations) %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<% e = @elevation %>
+<h2><%= link_to l(:label_gk_people_elevations), gk_people_elevations_path %> &#187; <%= e.person&.name || gk_people_name(e.user) %><%= gk_people_mark(e.user) %>, <%= format_time(e.started_at) %></h2>
+<div class="box gk-people-facts">
+  <table class="attributes">
+    <tr><th><%= l(:label_gk_people_account) %></th><td><%= gk_people_user(e.user) %><% if (lg = gk_people_login(e.user)) %> (<%= lg %>)<% end %></td></tr>
+    <tr><th><%= l(:label_gk_people_person) %></th><td><%= e.person ? gk_people_person_link(e.person) : '' %></td></tr>
+    <tr><th><%= l(:label_gk_people_elevation_method) %></th><td><%= l("label_gk_people_elevation_method_#{e.auth_method}", default: e.auth_method) %></td></tr>
+    <tr><th><%= l(:label_gk_people_elevation_reason) %></th><td><%= e.reason %></td></tr>
+    <tr><th><%= l(:label_gk_people_elevation_from) %></th><td><%= format_time(e.started_at) %></td></tr>
+    <tr><th><%= l(:label_gk_people_elevation_to) %></th><td><%= e.ended_at ? format_time(e.ended_at) : (e.open? ? l(:label_gk_people_elevation_open) : format_time(e.expires_at)) %>
+      <% if e.end_reason %>(<%= l("label_gk_people_elevation_end_#{e.end_reason}") %>)<% end %></td></tr>
+    <tr><th><%= l(:label_gk_people_elevation_ip) %></th><td><%= e.ip %></td></tr>
+  </table>
+</div>
+<h3><%= l(:label_gk_people_elevation_actions) %> <%= gk_gui_stuff_count(@actions.size) %></h3>
+<% if @actions.empty? %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% else %>
+<table class="list gk-people-elevation-actions">
+  <thead><tr><th><%= l(:label_date) %></th><th><%= l(:label_gk_people_elevation_page) %></th><th></th><th><%= l(:label_gk_people_elevation_target) %></th><th></th></tr></thead>
+  <tbody>
+  <% @actions.each do |a| %>
+    <tr class="<%= cycle('odd', 'even') %>"><td class="date"><%= format_time(a.at) %></td><td class="page"><code><%= a.controller %>#<%= a.action %></code></td>
+      <td class="text"><code><%= a.http_method %> <%= a.path %></code></td><td class="target"><%= a.target_id %></td><td class="status"><%= a.status %></td></tr>
+  <% end %>
+  </tbody>
+</table>
+<% end %>
+<h3><%= l(:label_gk_people_see_as_sessions) %> <%= gk_gui_stuff_count(@see_as.size) %></h3>
+<% if @see_as.empty? %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% else %>
+<table class="list gk-people-see-as-sessions">
+  <thead><tr><th><%= l(:label_gk_people_elevation_from) %></th><th><%= l(:label_gk_people_elevation_to) %></th><th><%= l(:label_gk_people_see_as_who) %></th>
+    <th><%= l(:label_gk_people_elevation_page) %></th><th><%= l(:label_gk_people_elevation_reason) %></th><th><%= l(:label_gk_people_see_as_pages) %></th></tr></thead>
+  <tbody>
+  <% @see_as.each do |r| %>
+    <tr class="<%= cycle('odd', 'even') %>"><td class="started_at"><%= format_time(r.started_at) %></td>
+      <td class="ended_at"><%= r.ended_at ? format_time(r.ended_at) : l(:label_gk_people_elevation_open) %><% if r.end_reason %> (<span class="gk-people-see-as-end gk-people-see-as-end-<%= r.end_reason %>"><%= l("label_gk_people_see_as_end_#{r.end_reason}", default: r.end_reason) %></span>)<% end %></td>
+      <td class="target"><%= r.target_label %><%= gk_people_mark(r.target_user || r.target_group) %></td><td class="place"><code><%= r.place %></code></td><td class="description"><%= r.reason %></td><td class="pages"><%= r.pages %></td></tr>
+  <% end %>
+  </tbody>
+</table>
+<% end %>

@@ -1,0 +1,36 @@
+<%# Administration > Synk (personer): every call to the sync endpoints, newest first %>
+<% html_title l(:label_gk_people_sync_log) %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<h2><%= l(:label_gk_people_sync_log) %></h2>
+<p class="nodata gk-people-intro" style="font-size: 1em;"><%= l(:text_gk_people_sync_intro) %></p>
+<% unless Setting.rest_api_enabled? %><div class="flash warning"><%= l(:text_gk_people_sync_rest_off) %></div><% end %>
+<%= form_tag gk_people_sync_log_path, method: :get do %>
+  <fieldset><legend><%= l(:label_filter_plural) %></legend>
+    <label><%= l(:label_gk_people_source) %> <%= text_field_tag 'source', params[:source], size: 12 %></label>
+    <label><%= l(:label_gk_people_sync_resource) %>
+      <%= select_tag 'resource', options_for_select([['', '']] + GkPeople::Sync::RESOURCES.map { |r| [l("label_gk_people_sync_resource_#{r}"), r] }, params[:resource]) %></label>
+    <label><%= l(:label_gk_people_date_from) %> <%= date_field_tag 'from', params[:from] %></label>
+    <label><%= l(:label_gk_people_date_to) %> <%= date_field_tag 'to', params[:to] %></label>
+    <%= render partial: 'gk_people/filter_buttons' %>
+  </fieldset>
+<% end %>
+<% if @logs.empty? %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% else %>
+<table class="list">
+  <thead><tr><th><%= l(:label_date) %></th><th><%= l(:label_gk_people_source) %></th><th><%= l(:label_gk_people_sync_resource) %></th>
+    <th><%= l(:label_gk_people_sync_by) %></th><th><%= l(:label_gk_people_sync_received) %></th><th><%= l(:label_gk_people_sync_created) %></th>
+    <th><%= l(:label_gk_people_sync_updated) %></th><th><%= l(:label_gk_people_sync_unchanged) %></th><th><%= l(:label_gk_people_sync_rejected) %></th></tr></thead>
+  <tbody>
+  <% @logs.each do |lg| %>
+    <tr class="<%= cycle('odd', 'even') %>">
+      <td class="date"><%= link_to format_time(lg.started_at), gk_people_sync_log_entry_path(lg) %></td><td class="source"><%= lg.source %></td>
+      <td class="resource"><span class="gk-people-sync-resource gk-people-sync-resource-<%= lg.resource %>"><%= l("label_gk_people_sync_resource_#{lg.resource}", default: lg.resource) %></span></td><td class="user"><%= gk_people_user(lg.user) %></td>
+      <td class="received"><%= lg.received %></td><td class="created"><%= lg.created %></td><td class="updated"><%= lg.updated %></td><td class="unchanged"><%= lg.unchanged %></td>
+      <td class="rejected"><%= lg.rejected.positive? ? content_tag('strong', lg.rejected) : lg.rejected %></td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+<span class="pagination"><%= pagination_links_full @pages, @count %></span>
+<% end %>

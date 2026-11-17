@@ -1,0 +1,69 @@
+# How company data (Get-Foretagsdata.ps1's JSONL, one organization a line) is read into people: the mapping
+# foretagsdata_jsonl@1. A change in what is read is a new version of this file, never an edit of this one.
+# Read by GkPeople::CompanyData, which knows only the words used here (from, fallback, take, join, map, type).
+name: foretagsdata_jsonl
+version: 1
+format: jsonl
+
+# The whole file at most; the page reads at most its own limits and names the rake task for larger files
+limits:
+  max_bytes: 209715200
+  max_rows: 100000
+  page_max_bytes: 20971520
+  page_max_rows: 5000
+
+key:
+  organization: org_number
+  legal: '\A\d{10}\z'
+  sole_trader_flag: sole_trader
+  sole_trader_key: '\Ap_[0-9a-f]{16}\z'
+  workplace: cfar_number
+
+# A field set by a reading of one of these mappings may be updated by this one; any other field that differs is held
+updates_fields_of: [foretagsdata_jsonl@1, scb_workplaces@1]
+# Workplaces are found again by their number from readings of these mappings
+workplaces_of: [foretagsdata_jsonl@1, scb_workplaces@1]
+
+# What is chosen to be read: workplaces in the municipalities chosen; an organization is read when at least one of
+# its workplaces is
+selection:
+  by: municipality
+  unit: workplaces
+  path: municipality.code
+  label: municipality.name
+  min: 1
+
+# A place for lookups in other registers; none in this version
+lookups: {}
+
+sole_traders:
+  # Bolagsverket's facts on a sole trader's line are never read
+  read_attributes: false
+  org_form: Enskild näringsidkare
+
+country:
+  Sverige: SE
+  SVERIGE: SE
+  SE: SE
+
+# The organization: each field from Bolagsverket's facts (attributes), the first workplace's when there are none
+organization:
+  name: { from: attributes.name, fallback: workplace.name }
+  sni: { from: attributes.industries, take: first_code, fallback: workplace.industries }
+  address: { from: attributes.postal_address, join: postal, fallback: workplace.postal_address }
+  city: { from: attributes.postal_address, take: city, fallback: workplace.postal_address }
+  country: { from: attributes.postal_address, take: country, map: country }
+  org_form: { from: attributes.organisation_form }
+  deregistered_on: { from: attributes.deregistration_date, type: date }
+
+# A workplace: a child organization of its company
+workplace:
+  name: { from: name }
+  address: { from: visiting_address, join: visiting }
+  city: { from: visiting_address, take: city }
+  sni: { from: industries, take: first_code }
+  size_class: { from: size_class }
+
+# Never read, whatever the line holds
+never_read: [phone, email, opt_outs, attributes.advertising_opt_out, attributes.other_names, attributes.business_description,
+             attributes.ongoing_proceedings, sources.Bolagsverket.annual_reports]

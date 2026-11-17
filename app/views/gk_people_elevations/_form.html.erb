@@ -1,0 +1,39 @@
+<%# The step-up form, the same on the page and in gui_stuff's surface: built like core's own password page (a line of
+    what it means and a tabular box), earlier reasons as buttons that fill in the reason. %>
+<div class="gk-people-elevate" data-title="<%= l(:label_gk_people_step_up) %>" data-submit="<%= l(:button_gk_people_step_up) %>" data-cancel="<%= l(:button_cancel) %>">
+<% if inactive %>
+  <p class="nodata" style="font-size: 1em;"><%= l(:text_gk_people_elevation_inactive) %></p>
+<% elsif lacks_person %>
+  <div class="flash warning"><%= l(:text_gk_people_elevation_no_person) %></div>
+<% else %>
+  <% if error %><div class="flash error" id="gk-people-elevate-error" role="alert"><%= error %></div><% end %>
+  <p class="nodata" style="font-size: 1em;"><%= l(:text_gk_people_step_up_intro, minutes: GkPeople::Elevation.minutes, max: GkPeople::Elevation.max_minutes) %></p>
+  <%= form_tag gk_people_elevate_path, method: :post, class: 'tabular', id: 'gk-people-elevate-form' do %>
+    <%# checked by core's validate_back_url here too, so the form never carries an address it would refuse %>
+    <%= hidden_field_tag 'back_url', validate_back_url((params[:back_url].presence || request.referer).to_s) || nil, id: nil %>
+    <div class="box">
+      <p><label><%= l(:label_gk_people_person) %></label>
+        <%= GkPeople.person_for(User.current)&.name %> <span class="gk-people-muted">(<%= User.current.login %>)</span></p>
+      <p><label for="gk_people_password"><%= l(:field_password) %><span class="required">*</span></label>
+        <%= password_field_tag 'password', nil, size: 25, id: 'gk_people_password', autocomplete: 'current-password', autofocus: true %>
+        <% if Setting.lost_password? %><br><%= link_to l(:label_password_lost), lost_password_path, class: 'lost_password' %><% end %></p>
+      <%# The place people.elevation's mode; the form keeps its own earlier reasons (they read its own table) %>
+      <% reason_off = defined?(GkRecords::Reasons) && GkRecords::Reasons.off?('people.elevation') %>
+      <% reason_req = defined?(GkRecords::Reasons) && GkRecords::Reasons.required?('people.elevation') %>
+      <% unless reason_off %>
+      <p><label for="gk_people_reason"><%= l(:label_gk_people_elevation_reason) %><% if reason_req %><span class="required">*</span><% end %></label>
+        <%= text_field_tag 'reason', params[:reason], size: 60, maxlength: 500, id: 'gk_people_reason', autocomplete: 'off',
+                           list: (reasons.any? ? 'gk-people-reasons' : nil), required: (reason_req ? true : nil) %>
+        <em class="info"><%= l(:text_gk_people_elevation_reason) %></em></p>
+      <% if reasons.any? %>
+        <datalist id="gk-people-reasons"><% reasons.each do |r| %><option value="<%= r %>"></option><% end %></datalist>
+        <p class="gk-people-reasons"><label><%= l(:label_gk_people_earlier_reasons) %></label>
+          <% reasons.each do |r| %><%= gk_gui_stuff_pill(truncate(r, length: 60), choice: true, pressed: false,
+                                                          button: { title: l(:text_gk_people_use_reason), data: { gk_people_reason: r } }) %><% end %></p>
+      <% end %>
+      <% end %>
+    </div>
+    <%= submit_tag l(:button_gk_people_step_up), class: 'gk-people-elevate-submit', name: nil %>
+  <% end %>
+<% end %>
+</div>

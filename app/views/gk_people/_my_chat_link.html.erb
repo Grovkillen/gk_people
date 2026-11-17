@@ -1,0 +1,10 @@
+<%# gk_people: whether one's chat link (Teams, Slack) is exposed after one's name to others; the administrator chooses
+    off, optional (one chooses here) or forced %>
+<p><label for="pref_gk_people_hide_chat"><%= l(:label_gk_people_hide_chat) %></label>
+  <% if exposure == 'forced' %><em><%= l(:text_gk_people_chat_required) %></em>
+  <% elsif exposure == 'off' %><em><%= l(:text_gk_people_chat_off) %></em>
+  <% else %>
+    <%= hidden_field_tag 'pref[gk_people_hide_chat]', '0', id: nil %>
+    <%= check_box_tag 'pref[gk_people_hide_chat]', '1', User.current.pref.gk_people_hide_chat == '1', id: 'pref_gk_people_hide_chat' %>
+    <em class="info"><%= l(:text_gk_people_hide_chat) %></em>
+  <% end %></p>

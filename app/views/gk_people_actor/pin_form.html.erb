@@ -1,0 +1,24 @@
+<%# The PIN after the badge or the name, at a computer that wants one; a start code is changed here the first time %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<% html_title l(:label_gk_people_actor_who) %>
+<h2><%= l(:label_gk_people_actor_who) %></h2>
+<%= form_tag gk_people_actor_pin_path, autocomplete: 'off' do %>
+  <div class="box tabular">
+    <p><label><%= l(:field_gk_people_actor_who) %></label> <strong><%= @person.name %></strong>
+      <%= link_to l(:button_gk_people_actor_change), gk_people_actor_who_path %></p>
+    <% if !GkPeople::Pin.set?(@person) %>
+      <p class="flash warning"><%= l(@person.user_id ? :error_gk_people_pin_none_own : :error_gk_people_pin_none) %></p>
+    <% else %>
+      <p><label for="gk_people_pin"><%= l(:field_gk_people_pin) %> <span class="required">*</span></label>
+        <%= password_field_tag 'pin', '', id: 'gk_people_pin', size: 10, autofocus: true, inputmode: 'numeric', autocomplete: 'off' %></p>
+      <% if GkPeople::Pin.must_change?(@person) %>
+        <p class="gk-people-muted"><%= l(:text_gk_people_pin_change_first) %></p>
+        <p><label for="gk_people_new_pin"><%= l(:field_gk_people_new_pin) %> <span class="required">*</span></label>
+          <%= password_field_tag 'new_pin', '', id: 'gk_people_new_pin', size: 10, inputmode: 'numeric', autocomplete: 'off' %></p>
+        <p><label for="gk_people_new_pin_again"><%= l(:field_gk_people_new_pin_again) %> <span class="required">*</span></label>
+          <%= password_field_tag 'new_pin_again', '', id: 'gk_people_new_pin_again', size: 10, inputmode: 'numeric', autocomplete: 'off' %></p>
+      <% end %>
+    <% end %>
+  </div>
+  <%= submit_tag l(:button_gk_people_actor_its_me) if GkPeople::Pin.set?(@person) %>
+<% end %>

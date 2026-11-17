@@ -1,0 +1,51 @@
+<%# A person. What a source owns (a synced person) is shown but not changed here; the account is linked on the
+    person's page, not in this form. Notes are plain text and must not hold anything sensitive (people, Integritet). %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<%= error_messages_for @person %>
+<% p = @person %>
+<% ro = ->(attr) { p.owned_by_source?(attr) } %>
+<%# Beside each field a reading set, the reading (gk_people_source_note); one query for the page %>
+<% og = p.persisted? ? gk_people_origins(p) : {} %>
+<% note = ->(attr) { gk_people_source_note(p, attr, origins: og) } %>
+
+<%= form_tag((p.persisted? ? gk_people_person_path(p) : gk_people_persons_path), method: (p.persisted? ? :patch : :post)) do %>
+<div class="box tabular">
+  <p><label for="person_first_name"><%= l(:field_firstname) %></label>
+    <%= text_field_tag 'person[first_name]', p.first_name, size: 30, id: 'person_first_name', disabled: ro.call(:first_name) %> <%= note.call(:first_name) %></p>
+  <p><label for="person_last_name"><%= l(:field_lastname) %></label>
+    <%= text_field_tag 'person[last_name]', p.last_name, size: 30, id: 'person_last_name', disabled: ro.call(:last_name) %> <%= note.call(:last_name) %></p>
+  <p><label for="person_display_name"><%= l(:label_gk_people_display_name) %></label>
+    <%= text_field_tag 'person[display_name]', p.display_name, size: 40, id: 'person_display_name', disabled: ro.call(:display_name) %> <%= note.call(:display_name) %>
+    <em class="info"><%= l(:text_gk_people_display_name) %></em></p>
+  <p><label for="person_kind"><%= l(:field_type) %></label>
+    <%= select_tag 'person[kind]', gk_people_person_kind_options(p.kind), id: 'person_kind' %></p>
+  <p><label for="person_organization_id"><%= l(:label_gk_people_organization) %></label>
+    <%= select_tag 'person[organization_id]', content_tag('option', '', value: '') + options_for_select(GkPeopleOrganization.where(active: true).or(GkPeopleOrganization.where(id: p.organization_id)).sorted.map { |o| [o.name, o.id, { data: { internal: o.relation?('internal') ? 1 : 0 } }] }, p.organization_id),
+                   id: 'person_organization_id', disabled: ro.call(:organization_id) %> <%= note.call(:organization_id) %></p>
+  <p><label for="person_title"><%= l(:label_gk_people_title) %></label>
+    <%= text_field_tag 'person[title]', p.title, size: 40, id: 'person_title', disabled: ro.call(:title) %> <%= note.call(:title) %></p>
+  <p><label for="person_email"><%= l(:field_mail) %></label>
+    <%= email_field_tag 'person[email]', p.email, size: 40, id: 'person_email', disabled: ro.call(:email) %> <%= note.call(:email) %></p>
+  <p><label for="person_phone"><%= l(:label_gk_people_phone) %></label>
+    <%= text_field_tag 'person[phone]', p.phone, size: 20, id: 'person_phone', disabled: ro.call(:phone) %> <%= note.call(:phone) %></p>
+  <p><label for="person_languages"><%= l(:label_gk_people_languages) %></label>
+    <%= text_field_tag 'person[languages]', p.languages, size: 20, id: 'person_languages', placeholder: 'sv, en' %>
+    <em class="info"><%= l(:text_gk_people_languages) %></em></p>
+  <p><label for="person_info_source"><%= l(:label_gk_people_info_source) %></label>
+    <%= text_field_tag 'person[info_source]', p.info_source, size: 40, maxlength: 200, id: 'person_info_source' %>
+    <%= date_field_tag 'person[info_source_on]', p.info_source_on, id: 'person_info_source_on', 'aria-label': l(:label_gk_people_info_source_on) %>
+    <em class="info"><%= l(:text_gk_people_info_source) %></em></p>
+  <p><label for="person_notes"><%= l(:field_notes) %></label>
+    <%= text_area_tag 'person[notes]', p.notes, rows: 4, cols: 60, id: 'person_notes' %>
+    <em class="info"><%= l(:text_gk_people_notes_warning) %></em></p>
+  <p><label for="person_active"><%= l(:field_active) %></label>
+    <%= hidden_field_tag 'person[active]', '0', id: nil %><%= check_box_tag 'person[active]', '1', p.active, id: 'person_active', disabled: ro.call(:active) %></p>
+  <%# The tag field from gk_tags, when tags is there and its function tags.objects is on %>
+  <%= render(partial: 'gk_tags_tags/object_field', locals: { object: p, prefix: 'person' }) if defined?(::GkTags::Taggables) %>
+</div>
+<p><%= submit_tag(p.persisted? ? l(:button_save) : l(:button_create)) %>
+  <%= link_to l(:button_cancel), (p.persisted? ? gk_people_person_path(p) : gk_people_persons_path) %></p>
+<% end %>
+
+<%# One of our own people chooses only among organizations with the relation internal (gk_people_forms.js) %>
+<%= javascript_include_tag 'gk_people_forms', plugin: 'gk_people' %>

@@ -1,0 +1,4 @@
+<% html_title @credential.to_s %>
+<% h = @credential.holder %>
+<h2><%= link_to GkPeople::Credentials.holder_name(h), (h.is_a?(GkPeopleOrganization) ? gk_people_organization_path(h) : gk_people_person_path(h)) %> &#187; <%= @credential.to_s %></h2>
+<%= render partial: 'form' %>

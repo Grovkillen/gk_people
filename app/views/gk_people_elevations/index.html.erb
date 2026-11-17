@@ -1,0 +1,47 @@
+<% html_title l(:label_gk_people_elevations) %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<h2><%= l(:label_gk_people_elevations) %></h2>
+<p class="gk-people-muted"><%= l(:text_gk_people_elevations_intro) %></p>
+<% unless GkPeople::Elevation.enabled? %><p class="flash warning"><%= l(:text_gk_people_elevation_off) %></p><% end %>
+<% reserves = GkPeopleReserveAccount.active.includes(:user, :owner).to_a %>
+<h3 id="gk-people-reserves"><%= l(:label_gk_people_reserve_accounts) %></h3>
+<% if reserves.empty? %>
+  <p class="nodata"><%= l(:text_gk_people_no_reserves) %></p>
+<% else %>
+<table class="list gk-people-reserves">
+  <thead><tr><th><%= l(:label_gk_people_account) %></th><th><%= l(:label_gk_people_reserve_owner) %></th><th><%= l(:field_status) %></th><th><%= l(:label_gk_people_reserve_synced) %></th></tr></thead>
+  <tbody>
+  <% reserves.each do |r| %>
+    <tr class="<%= cycle('odd', 'even') %>">
+      <td class="name"><%= gk_people_user(r.user) %><% if (lg = gk_people_login(r.user)) %> <span class="gk-people-muted">(<%= lg %>)</span><% end %></td>
+      <td class="owner"><%= r.shared? ? l(:label_gk_people_shared_admin) : gk_people_user(r.owner) %></td>
+      <td class="status"><% st = r.open? ? 'open' : 'locked' %><span class="gk-people-reserve-state gk-people-reserve-state-<%= st %>"><%= r.open? ? l(:label_gk_people_reserve_state_open, until: (r.unlocked_until ? format_time(r.unlocked_until) : '')) : l(:label_gk_people_reserve_state_locked) %></span></td>
+      <td class="synced"><%= r.owner&.auth_source_id.present? ? l(:label_gk_people_reserve_state_ldap) : (r.last_synced_at ? format_time(r.last_synced_at) : '') %></td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+<% end %>
+<h3><%= l(:label_gk_people_elevations) %></h3>
+<% if @elevations.empty? %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% else %>
+<table class="list gk-people-elevations">
+  <thead><tr><th><%= l(:label_gk_people_person) %></th><th><%= l(:label_gk_people_elevation_reason) %></th><th><%= l(:label_gk_people_elevation_from) %></th>
+    <th><%= l(:label_gk_people_elevation_to) %></th><th><%= l(:label_gk_people_elevation_how) %></th><th><%= l(:label_gk_people_elevation_actions) %></th></tr></thead>
+  <tbody>
+  <% @elevations.each do |e| %>
+    <tr class="<%= cycle('odd', 'even') %>">
+      <td class="name"><%= link_to (e.person&.name || gk_people_name(e.user)), gk_people_elevation_path(e) %><%= gk_people_mark(e.user) %><% if (lg = gk_people_login(e.user)) %> <span class="gk-people-muted">(<%= lg %>)</span><% end %></td>
+      <td class="description"><% own_kind = %w[reserve gate].include?(e.auth_method) %><% if own_kind %><span class="badge badge-status-locked gk-people-badge gk-people-elevation-method gk-people-elevation-method-<%= e.auth_method %>"><%= l("label_gk_people_elevation_method_#{e.auth_method}") %></span><% end %>
+        <%= e.reason.presence || (own_kind ? '' : content_tag(:span, l(:text_gk_people_no_reason), class: 'gk-people-muted')) %></td>
+      <td class="started_at"><%= format_time(e.started_at) %></td>
+      <td class="ended_at"><%= e.ended_at ? format_time(e.ended_at) : (e.open? ? content_tag(:strong, l(:label_gk_people_elevation_open)) : format_time(e.expires_at)) %></td>
+      <td class="end_reason"><%= e.end_reason ? content_tag(:span, l("label_gk_people_elevation_end_#{e.end_reason}"), class: "gk-people-elevation-end gk-people-elevation-end-#{e.end_reason}") : '' %></td>
+      <td class="actions"><%= @action_counts[e.id].to_i %></td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+<span class="pagination"><%= pagination_links_full @pages, @count %></span>
+<% end %>

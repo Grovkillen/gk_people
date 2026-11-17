@@ -1,0 +1,139 @@
+/* gk_people: the registers, elevation and Se som in one sheet. Logical properties only; every colour a role of GK GUI
+   Stuff with core's colour (compat fills it in 6.x) as its fallback. The pills, counts, popovers and the save rail
+   are GK GUI Stuff's own and are not styled here. */
+.gk-people-group-facts { color: var(--gk-role-ui-text-soft, var(--oc-gray-7, #495057)); }
+.gk-people-group-section { margin-block: 0 1em; }
+.gk-people-group-section h3 a.gk-people-group-write { font-size: 0.75em; font-weight: normal; margin-inline-start: 0.6em; }
+.gk-people-group-by { font-size: 0.85em; color: var(--gk-role-ui-text-soft, var(--oc-gray-7, #495057)); margin-block: 0.2em 0; }
+
+/* The registers: persons, organizations, schemes */
+.gk-people-muted { color: var(--gk-role-ui-text-soft, var(--oc-gray-7, #495057)); font-size: 0.9em; }
+.gk-people-inactive, .gk-people-inactive a { color: var(--gk-role-ui-muted, var(--oc-gray-6, #868e96)); }
+/* A badge is core's .badge; only the space before it is the plugin's */
+.gk-people-badge { margin-inline-start: 0.4em; }
+/* on the texts' baseline: a label beside a list and one with a checkbox read as one line */
+.gk-people-filter fieldset.box { display: flex; flex-wrap: wrap; gap: 0.6em 1.2em; align-items: baseline; }
+.gk-people-filter label { white-space: nowrap; }
+/* the filter's own submit button is not seen (core's Verkställ and Återställ are links); it keeps Enter sending */
+.gk-people-filter .gk-people-filter-enter { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); border: 0; padding: 0; }
+.gk-people-filter-buttons { display: inline-flex; gap: 0.6em; }
+.gk-people-tabs { margin-block-end: 0.8em; }
+.gk-people-facts table.attributes th { text-align: start; padding-inline-end: 1em; white-space: nowrap; font-weight: bold; vertical-align: top; }
+.gk-people-facts table.attributes td { vertical-align: top; }
+.gk-people-notes { margin-block-start: 0.6em; }
+.gk-people-inline-form { display: flex; flex-wrap: wrap; gap: 0.4em; align-items: center; margin-block: 0.4em; }
+.gk-people-fill form.gk-people-inline { display: inline; margin-inline-start: 0.6em; }
+.gk-people-channels a.gk-people-channel { margin-inline-end: 0.8em; }
+.gk-people-identifiers td.buttons { text-align: end; }
+.gk-people-code, code.gk-people-template { font-family: monospace; }
+input.gk-people-num { inline-size: 5em; }
+.gk-people-account-person ul { list-style: none; padding-inline-start: 0; margin: 0; }
+.gk-people-facts { overflow: hidden; }
+
+/* Personuppgifter and the extract */
+table.gk-people-processing td { vertical-align: top; text-align: start; }
+table.gk-people-processing td.gk-people-pp-table { white-space: nowrap; }
+tr.gk-people-pp-missing td { background: var(--gk-role-alert-alarm-soft, var(--oc-red-0, #fff5f5)); }
+tr.gk-people-pp-missing td strong { color: var(--gk-role-alert-alarm, var(--oc-red-9, #c92a2a)); }
+.gk-people-sa-part { margin-block: 1.2em; break-inside: avoid-page; }
+.gk-people-sa-part h3 code { font-size: 1em; }
+table.gk-people-sa-why th { text-align: start; padding-inline-end: 1em; white-space: nowrap; vertical-align: top; }
+table.gk-people-sa-rows td { text-align: start; vertical-align: top; font-size: 0.9em; }
+@media print {
+  .gk-people-noprint { display: none; }
+  .gk-people-sa-part .autoscroll { overflow: visible; }
+  table.gk-people-sa-rows { font-size: 0.8em; }
+}
+.gk-people-found form.gk-people-inline { display: inline; }
+.gk-people-found td.buttons, .gk-people-members td.buttons { text-align: end; }
+
+/* Stega upp (elevation): earlier reasons as GK GUI Stuff's choice pills that fill in the reason */
+.gk-people-reasons { display: flex; flex-wrap: wrap; gap: 0.3em 0.4em; align-items: center; }
+.gk-people-hidden { display: none; }
+
+/* actor_records: who is registering at a shared computer */
+.gk-people-actor [hidden] { display: none !important; }
+.gk-people-actor .gk-people-actor-chosen { display: inline-flex; gap: 0.6em; align-items: center; }
+/* The names found: a row of the form of its own (a p, as core's rows), so that in a tabular form it stands under the
+   field where core's own rows put their fields; each a pill with records' mark beside it */
+.gk-people-actor p.gk-people-actor-found { margin-block: 0.2em 0.6em; display: flex; flex-wrap: wrap; gap: 0.3em 0.4em; align-items: center; }
+.gk-people-actor-hit { display: inline-flex; gap: 0.2em; align-items: center; }
+p.gk-people-actor-line { margin-block: 0.4em; color: var(--gk-role-ui-text, var(--oc-gray-8, #343a40)); display: flex; gap: 0.4em; align-items: center; flex-wrap: wrap; }
+p.gk-people-actor-line .gk-people-muted { font-size: 0.9em; }
+table.gk-people-matrix td { text-align: center; }
+table.gk-people-matrix td.name { text-align: start; white-space: nowrap; }
+table.gk-people-matrix td.gk-people-over-ceiling { background: var(--gk-role-ui-raised, var(--oc-gray-1, #f1f3f5)); }
+
+table.gk-people-org tr.gk-people-vacancy td { background: var(--gk-role-alert-alarm-soft, var(--oc-red-0, #fff5f5)); color: var(--gk-role-alert-alarm, var(--oc-red-9, #c92a2a)); }
+table.gk-people-org tr.gk-people-vacancy a { color: var(--gk-role-alert-alarm, var(--oc-red-9, #c92a2a)); }
+.gk-people-vacancy-text { color: var(--gk-role-alert-alarm, var(--oc-red-8, #e03131)); }
+/* Ställföreträdare in its popover: the fields in a row that wraps */
+.gk-people-deputy-form { display: flex; flex-wrap: wrap; gap: 0.4em; align-items: center; }
+
+table.gk-people-org tr.gk-people-lacking-row td { background: var(--gk-role-alert-warning-soft, var(--oc-orange-0, #fff4e6)); }
+table.gk-people-credentials .gk-people-attachments a { margin-inline-end: 0.5em; }
+
+/* The chat program's icon after a name, a link to the program (NameLinks) */
+/* an icon link as core's (a.icon-only): core's icon link colour and hover, not dimmed */
+a.gk-people-chat-app { display: inline-block; margin-inline-start: 3px; vertical-align: middle; line-height: 1; text-decoration: none; }
+.gk-people-chat-app svg { inline-size: 14px; block-size: 14px; }
+/* Kinds of organization and the import */
+.gk-people-kind-choices label.inline { margin-inline-end: 0.8em; white-space: nowrap; }
+.gk-people-import-buttons { display: flex; gap: 0.5em; margin-block: 0.8em; align-items: center; }
+tr.gk-people-import-rejected td { background: var(--gk-role-alert-alarm-soft, var(--oc-red-0, #fff5f5)); }
+tr.gk-people-import-new td.action { color: var(--gk-role-diff-added, var(--oc-green-8, #2f9e44)); }
+tr.gk-people-import-update td.action { color: var(--gk-role-alert-info, var(--oc-blue-8, #1971c2)); }
+/* The heading at the top inside its box, as core's project overview */
+.gk-people-section > h3:first-child { margin-block-start: 0; }
+/* The quick line, its reading while typing (GK GUI Stuff's pills), and the saved rows: each row a save rail of GK GUI
+   Stuff (GkGui.save.rail) whose body is drawn again when the answer comes */
+.gk-people-quick-line { display: flex; gap: 0.4em; flex-wrap: wrap; align-items: center; margin-block: 0.3em; }
+.gk-people-quick-input { flex: 1 1 20em; max-inline-size: 48em; }
+.gk-people-quick-preview { min-block-size: 1.6em; display: flex; flex-wrap: wrap; gap: 0.3em; align-items: center; }
+.gk-people-quick-help { margin-block: 0.2em; font-size: 0.9em; }
+ul.gk-people-quick-rows { list-style: none; padding-inline-start: 0; margin-block: 0.4em; }
+li.gk-people-quick-row { padding-block: 0.25em; border-block-end: 1px solid var(--gk-role-ui-divider, var(--oc-gray-2, #e9ecef)); }
+.gk-people-quick-row-body { display: flex; flex-wrap: wrap; gap: 0.4em; align-items: center; }
+.gk-people-quick-parts { display: inline-flex; flex-wrap: wrap; gap: 0.3em; align-items: center; }
+.gk-people-quick-compare td.gk-people-quick-differs { background: var(--gk-role-alert-warning-soft, var(--oc-yellow-0, #fff9db)); }
+.gk-people-quick-suggestion { margin-block-end: 1em; }
+.gk-people-quick-suggestion .buttons { display: flex; flex-wrap: wrap; gap: 0.5em; align-items: center; }
+.gk-people-quick-suggestion .buttons form { display: inline-block; }
+
+/* elevation and Se som: the state in the top menu and in core's menu on a phone, the step-up form and the choice in
+   GK GUI Stuff's surface */
+/* The state's line in the top menu (put in the account part by gk_people_topmenu.js; at the top of the page without
+   script), with its box from GK GUI Stuff */
+.gk-people-topmenu { display: inline-block; margin-inline-end: 0.8em; }
+.gk-people-topmenu form { display: inline; margin: 0; }
+/* core's links in the top menu are white and bold; a link in the line's box (people's own .gk-people-topmenu-box)
+   reads like one in the page. Where the line stands in the account part (core's #account), the part lays its
+   children out in one row with the line first (order), whatever core draws there and in which element */
+#top-menu .gk-people-topmenu-box a { color: inherit; font-weight: normal; margin-inline-end: 0; text-decoration: underline; }
+#account:has(> .gk-people-topmenu) { display: flex; flex-wrap: nowrap; align-items: flex-start; }
+#account > .gk-people-topmenu { order: -1; }
+@media print { .gk-people-topmenu { display: none; } }
+/* core's account menu: the rows of a state stand only under Konto in core's menu on a phone, where the top menu is not;
+   people's personal pages Stega upp… and Se som… (the dropdown's rows, marked gk-people-personal when people
+   registers them) are not shown there a second time. The menu items themselves carry the classes (the menu's html
+   option), so they are hidden, not the element core wraps them in */
+@media (min-width: 900px) { #account .gk-people-menu-phone { display: none; } }
+.flyout-menu a.gk-people-personal { display: none; }
+/* The step-up form in GK GUI Stuff's surface: the surface's own buttons are used, the form's own button is hidden */
+.gk-people-elevate-surface .gk-people-elevate-submit { display: none; }
+.gk-people-elevate-surface .box { margin-block-end: 0; }
+/* Se som (see_as): the choices as GK GUI Stuff's pills */
+.gk-people-see-as-choose h4 { margin-block: 0.9em 0.3em; }
+.gk-people-picks { display: flex; flex-wrap: wrap; gap: 0.3em 0.4em; align-items: center; }
+.gk-people-see-as-mail-frame { inline-size: 100%; block-size: 55vh; border: 1px solid var(--gk-role-ui-frame, var(--oc-gray-3, #dee2e6));
+  background: var(--gk-role-ui-surface, var(--oc-white, #fff)); }
+/* Se som: not the usual mode, a frame round the page in the role admin like its ribbon; drawn as an outline inside
+   #main so that the layout does not move, and not printed */
+body.gk-people-see-as-framed #main { outline: 4px solid var(--gk-role-ui-admin, var(--oc-violet-8, #6741d9)); outline-offset: -4px; }
+@media print { body.gk-people-see-as-framed #main { outline: none; } }
+/* A note over a list or a page that reads as text, not as an empty list: from the start of the line */
+p.nodata.gk-people-intro { text-align: start; }
+/* A check box's label among others on one line, in the weight of the text round it */
+label.gk-people-plain-label { font-weight: normal; }
+/* The reserve accounts in the settings: one per line under the field's label, not in the label column */
+.tabular label.block.gk-people-reserve { margin-inline-start: 0; font-weight: normal; }

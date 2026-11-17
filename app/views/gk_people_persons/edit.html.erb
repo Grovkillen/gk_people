@@ -1,0 +1,3 @@
+<% html_title @person.name %>
+<h2><%= link_to l(:label_gk_people_persons), gk_people_persons_path %> &#187; <%= link_to @person.name, gk_people_person_path(@person) %></h2>
+<%= render partial: 'form' %>

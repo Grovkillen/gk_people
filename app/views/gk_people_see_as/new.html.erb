@@ -1,0 +1,5 @@
+<%# Se som as a page: the fallback without script. With gui_stuff the choice opens in the surface over the page. %>
+<% html_title l(:label_gk_people_see_as) %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<h2><%= l(:label_gk_people_see_as) %></h2>
+<div class="box"><%= render partial: 'chooser', locals: { choices: @choices, place: @place, path: @path, found: @found, error: nil } %></div>

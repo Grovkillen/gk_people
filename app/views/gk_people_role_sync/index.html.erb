@@ -1,0 +1,76 @@
+<%# Roller från ansvar: on or off, the deviations, the roles given now and the runs %>
+<% html_title l(:label_gk_people_role_sync) %>
+<div class="contextual">
+  <% if @enabled %><%= link_to sprite_icon('reload', l(:button_gk_people_role_sync_run)), gk_people_role_sync_run_path, method: :post, class: 'icon icon-reload' %><% end %>
+</div>
+<h2><%= link_to l(:label_gk_people_organisation), gk_people_responsibilities_path %> &#187; <%= l(:label_gk_people_role_sync) %></h2>
+<%= render partial: 'gk_people/tabs', locals: { current: :organisation } %>
+<p class="gk-people-muted"><%= l(:text_gk_people_role_sync_intro) %>
+  <% if GkPeople::RoleSync.ops_handles? %><%= l(:text_gk_people_role_sync_daily_ops) %><% if User.current.admin? %> <%= link_to l(:label_gk_ops_jobs), gk_ops_jobs_path %><% end %>
+  <% else %><%= l(:text_gk_people_role_sync_daily_fallback) %><% end %></p>
+<% unless @enabled %>
+  <p class="flash warning"><%= l(:text_gk_people_role_sync_off) %><% if User.current.admin? %> <%= link_to l(:label_settings), plugin_settings_path('gk_people') %><% end %></p>
+<% end %>
+
+<h3><%= l(:label_gk_people_deviations) %> <%= gk_gui_stuff_count(@deviations.size) %></h3>
+<% if @deviations.empty? %>
+  <p class="gk-people-muted"><%= l(:text_gk_people_no_deviations) %></p>
+<% else %>
+<p class="gk-people-muted"><%= l(:text_gk_people_deviations) %></p>
+<table class="list gk-people-list">
+  <thead><tr><th><%= l(:label_gk_people_holder) %></th><th><%= l(:label_project) %></th><th><%= l(:label_role) %></th><th><%= l(:label_gk_people_responsibility) %></th><th><%= l(:label_gk_people_removed_by_hand) %></th></tr></thead>
+  <tbody>
+  <% @deviations.each do |g| %>
+    <tr class="<%= cycle('odd', 'even') %> gk-people-lacking-row">
+      <td class="holder"><%= g.person ? link_to(g.person.name, gk_people_person_path(g.person)) : gk_people_name(g.user) %><%= gk_people_mark(g.user) %></td>
+      <td class="project"><%= g.project ? link_to(g.project.name, settings_project_path(g.project, tab: 'members')) : '' %></td>
+      <td class="role"><%= g.role&.name %></td>
+      <td class="responsibility"><%= g.rule&.responsibility ? link_to(g.rule.responsibility.name, gk_people_responsibility_path(g.rule.responsibility)) : '' %></td>
+      <td class="removed_by_hand"><%= format_time(g.removed_by_hand_at) %> <%= gk_people_named(g.removed_by) %></td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+<% end %>
+
+<h3><%= l(:label_gk_people_roles_given) %> <%= gk_gui_stuff_count(@grants.size) %></h3>
+<% if @grants.empty? %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% else %>
+<table class="list gk-people-list">
+  <thead><tr><th><%= l(:label_project) %></th><th><%= l(:label_gk_people_holder) %></th><th><%= l(:label_role) %></th><th><%= l(:label_gk_people_responsibility) %></th><th></th><th><%= l(:label_gk_people_since) %></th></tr></thead>
+  <tbody>
+  <% @grants.each do |g| %>
+    <tr class="<%= cycle('odd', 'even') %>">
+      <td class="project"><%= g.project&.name %></td>
+      <td class="holder"><%= g.person ? link_to(g.person.name, gk_people_person_path(g.person)) : '' %><%= gk_people_mark(g.user || g.person&.user) %><% if g.via == 'deputy' %> <span class="badge badge-status-locked gk-people-badge gk-people-via gk-people-via-deputy"><%= l(:label_gk_people_standing_in) %></span><% end %></td>
+      <td class="role"><%= g.role&.name %></td>
+      <td class="responsibility"><%= g.rule&.responsibility ? link_to(g.rule.responsibility.name, gk_people_responsibility_path(g.rule.responsibility)) : '' %></td>
+      <td class="text"><% if g.covered? %><span class="gk-people-muted"><%= l(:text_gk_people_role_covered) %></span><% end %></td>
+      <td class="since"><%= format_time(g.granted_at) %></td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+<% end %>
+
+<h3><%= l(:label_gk_people_role_sync_runs) %></h3>
+<% if @runs.empty? %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% else %>
+<table class="list gk-people-list">
+  <thead><tr><th><%= l(:label_gk_people_started) %></th><th><%= l(:field_type) %></th><th><%= l(:label_user) %></th><th><%= l(:label_gk_people_added) %></th><th><%= l(:label_gk_people_removed) %></th>
+    <th><%= l(:label_gk_people_deviations) %></th><th><%= l(:label_gk_people_no_account) %></th><th></th></tr></thead>
+  <tbody>
+  <% @runs.each do |r| %>
+    <tr class="<%= cycle('odd', 'even') %>">
+      <td class="started_at"><%= format_time(r.started_at) %></td>
+      <td class="kind"><span class="gk-people-role-sync-kind gk-people-role-sync-kind-<%= r.kind %>"><%= l("label_gk_people_role_sync_kind_#{r.kind}") %></span></td>
+      <td class="user"><%= gk_people_named(r.user) %></td>
+      <td class="added"><%= r.added %></td><td class="removed"><%= r.removed %></td><td class="deviations"><%= r.deviations %></td><td class="no_account"><%= r.no_account %></td>
+      <td class="errors"><% if r.errors_text.present? %><span class="badge badge-private gk-people-badge gk-people-cred-expired" title="<%= r.errors_text %>"><%= l(:label_gk_people_errors) %></span><% elsif r.finished_at.nil? %>...<% end %></td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+<% end %>

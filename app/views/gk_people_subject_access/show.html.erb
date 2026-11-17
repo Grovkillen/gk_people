@@ -1,0 +1,43 @@
+<% html_title "#{l(:label_gk_people_subject_access)}: #{@person.name}" %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><%= javascript_include_tag 'gk_people_forms', plugin: 'gk_people' %><% end %>
+<div class="contextual gk-people-noprint">
+  <%= link_to sprite_icon('file', l(:button_gk_people_print)), '#', class: 'icon icon-file', data: { gk_people_print: '' } %>
+</div>
+<h2><%= l(:label_gk_people_subject_access) %>: <%= @person.name %></h2>
+<div class="box gk-people-sa-head">
+  <p><%= l(:text_gk_people_sa_made, when: format_time(@made_at), by: User.current.name) %></p>
+  <p><%= l(:text_gk_people_sa_intro) %></p>
+  <p><%= l(:text_gk_people_sa_others) %></p>
+  <p><%= l(:text_gk_people_sa_correction) %></p>
+  <p class="gk-people-muted"><%= l(:text_gk_people_sa_summary, tables: @parts.size, rows: @parts.sum(&:count)) %></p>
+  <% unless @content %><p class="gk-people-sa-counts-only"><%= l(:text_gk_people_sa_counts_only) %></p><% end %>
+</div>
+<% @parts.each do |part| e = part.entry %>
+  <div class="gk-people-sa-part" id="sa-<%= e.table %><%= '-mentioned' if part.mentioned %>">
+    <% if part.mentioned %>
+      <h3><%= l(:label_gk_people_sa_mentioned) %>: <code><%= e.table %></code> <span class="badge badge-status-locked gk-people-badge"><%= l(:text_gk_people_sa_rows, count: part.count) %></span></h3>
+      <p class="gk-people-muted"><%= l(:text_gk_people_sa_mentioned) %></p>
+    <% else %>
+    <h3><code><%= e.table %></code> <span class="badge badge-status-locked gk-people-badge"><%= l(:text_gk_people_sa_rows, count: part.count) %></span></h3>
+    <% end %>
+    <table class="attributes gk-people-sa-why">
+      <tr><th><%= l(:label_gk_people_pp_purpose) %></th><td><%= e.missing? ? l(:text_gk_people_pp_no_purpose) : e.purpose %></td></tr>
+      <tr><th><%= l(:label_gk_people_pp_basis) %></th><td><%= e.legal_basis.present? ? l("label_gk_people_basis_#{e.legal_basis}") : '' %></td></tr>
+      <tr><th><%= l(:label_gk_people_pp_retention) %></th><td><%= e.retention %><% e.rule_texts.each do |t| %><br><%= t %><% end %></td></tr>
+      <tr><th><%= l(:label_gk_people_pp_visible) %></th><td><%= e.visible_to %></td></tr>
+    </table>
+    <% if @content %>
+    <div class="autoscroll">
+    <table class="list gk-people-sa-rows">
+      <thead><tr><% part.columns.each do |c| %><th><%= c %></th><% end %></tr></thead>
+      <tbody>
+      <% part.rows.each do |row| %>
+        <tr class="<%= cycle('odd', 'even') %>"><% row.each_with_index do |v, ci| %><td class="<%= part.columns[ci] %>"><%= v == :secret ? content_tag(:em, l(:text_gk_people_sa_secret)) : (v == :other ? content_tag(:em, l(:text_gk_people_sa_other), class: 'gk-people-muted') : v) %></td><% end %></tr>
+      <% end %>
+      </tbody>
+    </table>
+    </div>
+    <% if part.count > part.rows.size %><p class="gk-people-muted"><%= l(:text_gk_people_sa_more, shown: part.rows.size, count: part.count) %></p><% end %>
+    <% end %>
+  </div>
+<% end %>

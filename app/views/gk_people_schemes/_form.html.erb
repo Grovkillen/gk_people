@@ -1,0 +1,38 @@
+<%# A scheme: key and kind are set once (identifiers and links depend on them); a scheme in use is switched off, never
+    deleted. The name has other languages in gk_fields (Översättningar), not here. %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<%= error_messages_for @scheme %>
+<% s = @scheme %>
+<%= form_tag((s.persisted? ? gk_people_scheme_path(s) : gk_people_schemes_path), method: (s.persisted? ? :patch : :post)) do %>
+<div class="box tabular">
+  <p><label for="scheme_name"><%= l(:field_name) %> <span class="required">*</span></label>
+    <%= text_field_tag 'scheme[name]', s.name, size: 40, id: 'scheme_name' %></p>
+  <p><label for="scheme_key"><%= l(:label_gk_people_key) %> <span class="required">*</span></label>
+    <%= text_field_tag 'scheme[key]', s.key, size: 30, id: 'scheme_key', data: (s.new_record? ? { gk_gui_stuff_key_from: 'scheme_name', gk_gui_stuff_key_max: 60, gk_gui_stuff_key_examples: GkPeopleScheme.order(:key).limit(3).pluck(:key).join(', ') } : {}), disabled: s.persisted? %>
+    <em class="info"><%= l(:text_gk_people_key) %></em></p>
+  <p><label for="scheme_kind"><%= l(:field_type) %></label>
+    <%= select_tag 'scheme[kind]', options_for_select(GkPeople::SCHEME_KINDS.map { |k| [gk_people_scheme_kind(k), k] }, s.kind), id: 'scheme_kind', disabled: s.persisted? %>
+    <em class="info"><%= l(:text_gk_people_scheme_kinds) %></em></p>
+  <p><label for="scheme_unique_value"><%= l(:label_gk_people_unique) %></label>
+    <%= hidden_field_tag 'scheme[unique_value]', '0', id: nil %><%= check_box_tag 'scheme[unique_value]', '1', s.unique_value, id: 'scheme_unique_value' %>
+    <em class="info"><%= l(:text_gk_people_unique) %></em></p>
+  <p><label for="scheme_format"><%= l(:label_gk_people_format) %></label>
+    <%= text_field_tag 'scheme[format]', s.format, size: 40, id: 'scheme_format', class: 'gk-people-code' %>
+    <em class="info"><%= l(:text_gk_people_format) %></em></p>
+  <p><label for="scheme_link_template"><%= l(:label_gk_people_link_template) %></label>
+    <%= text_field_tag 'scheme[link_template]', s.link_template, size: 70, id: 'scheme_link_template', class: 'gk-people-code' %>
+    <em class="info"><%= l(:text_gk_people_link_template) %></em></p>
+  <p><label><%= l(:label_gk_people_show_on) %></label>
+    <% GkPeople::SHOW_ON.each do |place| %>
+      <label class="inline"><%= check_box_tag 'scheme[show_on][]', place, s.shown_on?(place), id: nil %> <%= l("label_gk_people_show_on_#{place}") %></label>
+    <% end %>
+    <%= hidden_field_tag 'scheme[show_on][]', '', id: nil %></p>
+  <p><label for="scheme_icon"><%= l(:label_gk_people_icon) %></label>
+    <%= text_field_tag 'scheme[icon]', s.icon, size: 20, id: 'scheme_icon' %></p>
+  <p><label for="scheme_position"><%= l(:field_position) %></label>
+    <%= number_field_tag 'scheme[position]', s.position, min: 1, id: 'scheme_position', class: 'gk-people-num' %></p>
+  <p><label for="scheme_active"><%= l(:field_active) %></label>
+    <%= hidden_field_tag 'scheme[active]', '0', id: nil %><%= check_box_tag 'scheme[active]', '1', s.active, id: 'scheme_active' %></p>
+</div>
+<p><%= submit_tag(s.persisted? ? l(:button_save) : l(:button_create)) %> <%= link_to l(:button_cancel), gk_people_schemes_path %></p>
+<% end %>

@@ -1,0 +1,120 @@
+<%# An organization. What a source owns is shown but not changed here. The approval is set by hand until the
+    supplier assessment sets it; who decided and when follow the status and are never typed. %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<%= error_messages_for @org %>
+<% o = @org %>
+<% ro = ->(attr) { o.owned_by_source?(attr) } %>
+<%# Beside each field a reading set, the reading (gk_people_source_note); one query for the page %>
+<% og = o.persisted? ? gk_people_origins(o) : {} %>
+<% note = ->(attr) { gk_people_source_note(o, attr, origins: og) } %>
+
+<%= form_tag((o.persisted? ? gk_people_organization_path(o) : gk_people_organizations_path), method: (o.persisted? ? :patch : :post)) do %>
+<div class="box tabular">
+  <p><label for="organization_name"><%= l(:field_name) %> <span class="required">*</span></label>
+    <%= text_field_tag 'organization[name]', o.name, size: 50, id: 'organization_name', disabled: ro.call(:name) %> <%= note.call(:name) %></p>
+  <p><label><%= l(:label_gk_people_org_kinds) %></label>
+    <%= hidden_field_tag 'organization[kind_keys][]', '', id: nil %>
+    <span class="gk-people-kind-choices">
+    <% chosen = o.kind_keys %>
+    <% GkPeopleOrgKind.sorted.select { |k| k.active || chosen.include?(k.key) }.each do |k| %>
+      <label class="inline"><%= check_box_tag 'organization[kind_keys][]', k.key, chosen.include?(k.key), id: nil, disabled: ro.call(:kind_keys) %> <%= k.name %></label>
+    <% end %>
+    </span></p>
+  <p><label for="organization_org_no"><%= l(:label_gk_people_org_no) %></label>
+    <%= text_field_tag 'organization[org_no]', o.org_no, size: 20, id: 'organization_org_no', disabled: ro.call(:org_no) %> <%= note.call(:org_no) %></p>
+  <%# The parent; never itself or one of its own descendants (the model refuses a cycle too) %>
+  <% shut = o.persisted? ? [o.id] + o.descendant_ids : [] %>
+  <p><label for="organization_parent_id"><%= l(:label_gk_people_org_parent) %></label>
+    <%= select_tag 'organization[parent_id]', content_tag('option', '', value: '') + options_for_select(GkPeopleOrganization.where.not(id: shut).where(active: true).or(GkPeopleOrganization.where(id: o.parent_id)).sorted.pluck(:name, :id), o.parent_id),
+                   id: 'organization_parent_id' %> <%= note.call(:parent_id) %>
+    <em class="info"><%= l(:text_gk_people_org_parent) %></em></p>
+  <p><label for="organization_short_name"><%= l(:label_gk_people_short_name) %></label>
+    <%= text_field_tag 'organization[short_name]', o.short_name, size: 12, maxlength: 40, id: 'organization_short_name' %>
+    <em class="info"><%= l(:text_gk_people_short_name) %></em></p>
+  <p><label for="organization_sni"><%= l(:label_gk_people_sni) %></label>
+    <%= text_field_tag 'organization[sni]', o.sni, size: 10, maxlength: 20, id: 'organization_sni' %> <%= note.call(:sni) %>
+    <em class="info"><%= l(:text_gk_people_sni) %></em></p>
+  <%# what company data brings: the form, a workplace's size class and the day of deregistration %>
+  <p><label for="organization_org_form"><%= l(:label_gk_people_org_form) %></label>
+    <%= text_field_tag 'organization[org_form]', o.org_form, size: 30, maxlength: 100, id: 'organization_org_form' %> <%= note.call(:org_form) %></p>
+  <p><label for="organization_size_class"><%= l(:label_gk_people_size_class) %></label>
+    <%= text_field_tag 'organization[size_class]', o.size_class, size: 20, maxlength: 60, id: 'organization_size_class' %> <%= note.call(:size_class) %></p>
+  <p><label for="organization_deregistered_on"><%= l(:label_gk_people_deregistered_on) %></label>
+    <%= date_field_tag 'organization[deregistered_on]', o.deregistered_on, id: 'organization_deregistered_on' %> <%= note.call(:deregistered_on) %></p>
+  <p><label for="organization_city"><%= l(:label_gk_people_city) %></label>
+    <%= text_field_tag 'organization[city]', o.city, size: 30, maxlength: 100, id: 'organization_city' %> <%= note.call(:city) %></p>
+  <p><label for="organization_address"><%= l(:label_gk_people_address) %></label>
+    <%= text_area_tag 'organization[address]', o.address, rows: 3, cols: 50, id: 'organization_address', disabled: ro.call(:address) %> <%= note.call(:address) %></p>
+  <%# The place as two coordinates, SWEREF 99 TM by default, read by gis when it is built %>
+  <p><label for="organization_location_n"><%= l(:label_gk_people_location) %></label>
+    <%= text_field_tag 'organization[location_n]', o.location_n&.to_s('F'), size: 14, inputmode: 'decimal', id: 'organization_location_n', 'aria-label': l(:label_gk_people_location_n), placeholder: 'N' %>
+    <%= text_field_tag 'organization[location_e]', o.location_e&.to_s('F'), size: 14, inputmode: 'decimal', id: 'organization_location_e', 'aria-label': l(:label_gk_people_location_e), placeholder: 'E' %>
+    <%= text_field_tag 'organization[location_crs]', o.location_crs.presence || 'EPSG:3006', size: 10, maxlength: 20, id: 'organization_location_crs', 'aria-label': l(:label_gk_people_location_crs) %>
+    <%= note.call(:location_n) %>
+    <em class="info"><%= l(:text_gk_people_location) %></em></p>
+  <p><label for="organization_country"><%= l(:label_gk_people_country) %></label>
+    <%= text_field_tag 'organization[country]', o.country, size: 3, maxlength: 2, id: 'organization_country', disabled: ro.call(:country) %> <%= note.call(:country) %>
+    <em class="info"><%= l(:text_gk_people_country) %></em></p>
+  <p><label for="organization_phone"><%= l(:label_gk_people_phone) %></label>
+    <%= text_field_tag 'organization[phone]', o.phone, size: 20, maxlength: 60, id: 'organization_phone' %></p>
+  <p><label for="organization_email"><%= l(:field_mail) %></label>
+    <%= email_field_tag 'organization[email]', o.email, size: 30, maxlength: 200, id: 'organization_email' %></p>
+  <p><label for="organization_website"><%= l(:label_gk_people_website) %></label>
+    <%= url_field_tag 'organization[website]', o.website, size: 40, maxlength: 255, id: 'organization_website' %></p>
+  <% if User.current.admin? %>
+  <p><label for="organization_owner_langs"><%= l(:label_gk_people_owner) %></label>
+    <%= text_field_tag 'organization[owner_langs]', o.owner_langs, size: 12, maxlength: 60, id: 'organization_owner_langs', placeholder: '*' %>
+    <em class="info"><%= l(:text_gk_people_owner) %></em></p>
+  <% end %>
+  <p><label for="organization_info_source"><%= l(:label_gk_people_info_source) %></label>
+    <%= text_field_tag 'organization[info_source]', o.info_source, size: 40, maxlength: 200, id: 'organization_info_source' %>
+    <%= date_field_tag 'organization[info_source_on]', o.info_source_on, id: 'organization_info_source_on', 'aria-label': l(:label_gk_people_info_source_on) %>
+    <em class="info"><%= l(:text_gk_people_info_source) %></em></p>
+  <p><label for="organization_notes"><%= l(:field_notes) %></label>
+    <%= text_area_tag 'organization[notes]', o.notes, rows: 3, cols: 60, id: 'organization_notes' %></p>
+  <p><label for="organization_active"><%= l(:field_active) %></label>
+    <%= hidden_field_tag 'organization[active]', '0', id: nil %><%= check_box_tag 'organization[active]', '1', o.active, id: 'organization_active', disabled: ro.call(:active) %></p>
+  <%# The tag field from gk_tags, when tags is there and its function tags.objects is on %>
+  <%= render(partial: 'gk_tags_tags/object_field', locals: { object: o, prefix: 'organization' }) if defined?(::GkTags::Taggables) %>
+</div>
+<%# The picture folder: a path on the server, so only the administrator sees and sets it %>
+<% if User.current.admin? && GkPeople::Avatars.on? %>
+<fieldset class="box tabular"><legend><%= l(:label_gk_people_avatar_folder) %></legend>
+  <p class="gk-people-muted"><%= l(:text_gk_people_avatar_folder) %></p>
+  <p><label for="organization_avatar_folder_on"><%= l(:label_gk_people_avatar_folder_on) %></label>
+    <%= hidden_field_tag 'organization[avatar_folder_on]', '0', id: nil %><%= check_box_tag 'organization[avatar_folder_on]', '1', o.avatar_folder_on, id: 'organization_avatar_folder_on' %></p>
+  <p><label for="organization_avatar_folder"><%= l(:label_gk_people_avatar_folder_path) %></label>
+    <%= text_field_tag 'organization[avatar_folder]', o.avatar_folder, size: 60, maxlength: 500, id: 'organization_avatar_folder' %>
+    <em class="info"><%= l(:text_gk_people_avatar_folder_path) %></em></p>
+  <p><label for="organization_avatar_name_rule"><%= l(:label_gk_people_avatar_name_rule) %></label>
+    <%= select_tag 'organization[avatar_name_rule]',
+                   options_for_select(GkPeople::AvatarFolder.rules.map { |r| [r.start_with?('scheme:') ? l(:label_gk_people_avatar_rule_scheme, name: GkPeopleScheme.find_by(key: r.delete_prefix('scheme:'))&.name) : l("label_gk_people_avatar_rule_#{r}"), r] }, o.avatar_name_rule),
+                   id: 'organization_avatar_name_rule' %>
+    <em class="info"><%= l(:text_gk_people_avatar_name_rule) %></em></p>
+</fieldset>
+<% end %>
+<% if User.current.admin? %>
+<%# What the organization lets its persons choose for those outside; the administrator only, also with the pictures off %>
+<fieldset class="box tabular"><legend><%= l(:label_gk_people_outward) %></legend>
+  <p><label for="organization_avatar_hide_allowed"><%= l(:label_gk_people_avatar_hide_allowed) %></label>
+    <%= hidden_field_tag 'organization[avatar_hide_allowed]', '0', id: nil %><%= check_box_tag 'organization[avatar_hide_allowed]', '1', o.avatar_hide_allowed, id: 'organization_avatar_hide_allowed' %>
+    <em class="info"><%= l(:text_gk_people_avatar_hide_allowed) %></em></p>
+  <p><label for="organization_name_hide_allowed"><%= l(:label_gk_people_name_hide_allowed) %></label>
+    <%= hidden_field_tag 'organization[name_hide_allowed]', '0', id: nil %><%= check_box_tag 'organization[name_hide_allowed]', '1', o.name_hide_allowed, id: 'organization_name_hide_allowed' %>
+    <em class="info"><%= l(:text_gk_people_name_hide_allowed) %></em></p>
+</fieldset>
+<% end %>
+<% if GkPeople.feature?('people.approval') %>
+<fieldset class="box tabular"><legend><%= l(:label_gk_people_approval) %></legend>
+  <p class="gk-people-muted"><%= l(:text_gk_people_approval_by_hand) %></p>
+  <p><label for="organization_approval_status"><%= l(:field_status) %></label>
+    <%= select_tag 'organization[approval_status]', options_for_select(GkPeople::APPROVAL.map { |s| [l("label_gk_people_approval_#{s}"), s] }, o.approval_status), id: 'organization_approval_status' %></p>
+  <p><label for="organization_approval_valid_to"><%= l(:label_gk_people_valid_to) %></label>
+    <%= date_field_tag 'organization[approval_valid_to]', o.approval_valid_to, id: 'organization_approval_valid_to' %></p>
+  <p><label for="organization_risk_class"><%= l(:label_gk_people_risk_class) %></label>
+    <%= text_field_tag 'organization[risk_class]', o.risk_class, size: 10, id: 'organization_risk_class' %></p>
+</fieldset>
+<% end %>
+<p><%= submit_tag(o.persisted? ? l(:button_save) : l(:button_create)) %>
+  <%= link_to l(:button_cancel), (o.persisted? ? gk_people_organization_path(o) : gk_people_organizations_path) %></p>
+<% end %>

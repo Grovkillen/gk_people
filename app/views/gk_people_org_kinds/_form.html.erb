@@ -1,0 +1,20 @@
+<%# A kind of organization: the key is set once; the name has other languages in gk_fields (Översättningar) %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<%= error_messages_for @kind %>
+<% k = @kind %>
+<%= form_tag((k.persisted? ? gk_people_org_kind_path(k) : gk_people_org_kinds_path), method: (k.persisted? ? :patch : :post)) do %>
+<div class="box tabular">
+  <p><label for="kind_name"><%= l(:field_name) %> <span class="required">*</span></label>
+    <%= text_field_tag 'kind[name]', k.name, size: 50, id: 'kind_name' %></p>
+  <p><label for="kind_key"><%= l(:label_gk_people_key) %> <span class="required">*</span></label>
+    <%= text_field_tag 'kind[key]', k.key, size: 30, id: 'kind_key', data: (k.new_record? ? { gk_gui_stuff_key_from: 'kind_name', gk_gui_stuff_key_max: 60, gk_gui_stuff_key_examples: GkPeopleOrgKind.order(:key).limit(3).pluck(:key).join(', ') } : {}), disabled: k.persisted? %>
+    <em class="info"><%= l(:text_gk_people_key) %></em></p>
+  <p><label for="kind_description"><%= l(:field_description) %></label>
+    <%= text_area_tag 'kind[description]', k.description, rows: 3, cols: 60, id: 'kind_description' %></p>
+  <p><label for="kind_position"><%= l(:field_gk_people_position) %></label>
+    <%= number_field_tag 'kind[position]', k.position, id: 'kind_position', class: 'gk-people-num' %></p>
+  <p><label for="kind_active"><%= l(:field_active) %></label>
+    <%= hidden_field_tag 'kind[active]', '0', id: nil %><%= check_box_tag 'kind[active]', '1', k.active, id: 'kind_active' %></p>
+</div>
+<p><%= submit_tag(k.persisted? ? l(:button_save) : l(:button_create)) %> <%= link_to l(:button_cancel), gk_people_org_kinds_path %></p>
+<% end %>

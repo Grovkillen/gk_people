@@ -1,0 +1,14 @@
+<%# Stega upp as a page: the barrier when a page that needs admin was asked for, and the fallback
+    without script. With gui_stuff the form opens in the surface over this page at once (gk_people_elevation.js). %>
+<% html_title l(:label_gk_people_step_up) %>
+<% content_for :header_tags do %>
+  <%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %>
+  <%= javascript_include_tag 'gk_people_elevation', plugin: 'gk_people' %>
+<% end %>
+<h2><%= l(:label_gk_people_step_up) %></h2>
+<div id="gk-people-elevate-page" data-auto-surface="<%= (!@inactive && !@lacks_person) ? '1' : '0' %>"
+     data-fragment-url="<%= gk_people_elevate_path(fragment: 1, back_url: validate_back_url(params[:back_url].to_s) || nil) %>">
+  <%= render partial: 'form', locals: { reasons: @reasons, inactive: @inactive, lacks_person: @lacks_person, error: @error } %>
+</div>
+<p id="gk-people-elevate-reopen" class="gk-people-hidden"><%= l(:text_gk_people_elevate_needed) %>
+  <button type="button" class="gk-people-elevate-open"><%= l(:button_gk_people_step_up) %></button></p>

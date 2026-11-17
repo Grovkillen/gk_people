@@ -1,0 +1,66 @@
+<%# Overrides core's groups/show (documented in plugins/people, Core-patchar): core's page as it is (title, custom
+    fields, members) plus what the group is: the facts, the sections What the group does and Authority (notes in
+    records, the newest that is not corrected or voided) and the group's records (all notes and the history). Who
+    changed or wrote is named by records' GkRecords::Visibility: a person the reader may not see by core's rule is
+    "en person du inte får se". All of it shows only with records, and only with GK GUI Stuff (gate.rb): the function's
+    register answers also while the gate is closed, so the page asks the gate itself and is core's own then. %>
+<% core_page = GkPeople.gui? && GkPeople.feature?('people.group_page') ? nil : GkPeople::Groups.core_show_source %>
+<% if core_page %>
+<%= render inline: core_page %>
+<% else %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<div class="contextual">
+<%= link_to(sprite_icon('edit', l(:button_edit)), edit_group_path(@group), :class => 'icon icon-edit') if User.current.admin? %>
+<%# The group's picture or icon, for one who may change it %>
+<%= link_to(l(:label_gk_people_avatar_change), gk_people_avatar_edit_path(user_id: @group.id), id: 'gk-people-group-avatar') if GkPeople::Avatars.may_edit?(@group) %>
+</div>
+
+<h2><%= @group.name %><%= gk_people_mark(@group) %></h2>
+
+<% ready = GkPeople::Groups.ready? && GkRecords::Targets.visible?(@group) %>
+<% editable = ready && GkRecords::Targets.editable?(@group) %>
+<% if ready %>
+  <% last = GkPeople::Groups.last_change(@group) %>
+  <p class="gk-people-group-facts">
+    <%= l(:text_gk_people_group_started, when: format_time(@group.created_on)) %>
+    <% if last %> &middot; <%= gk_people_t_marked(:text_gk_people_group_last_change, :user, last[1], GkRecords::Visibility.name_for(last[1]), when: format_time(last[0]), what: last[2]) %><% end %>
+    &middot; <%= l(:text_gk_people_group_members, count: @group.users.visible.count) %>
+  </p>
+  <% GkPeople::Groups::SECTIONS.each do |kind| %>
+    <% note = GkPeople::Groups.current(@group, kind) %>
+    <div class="gk-people-group-section">
+      <h3><%= l("label_gk_people_note_#{kind}") %>
+        <% if editable %><a href="#gk-records" class="gk-people-group-write icon-only" data-kind="<%= kind %>" data-corrects="<%= note&.id %>"><%= note ? l(:button_gk_people_rewrite) : l(:button_gk_people_write) %></a><% end %></h3>
+      <% if note %>
+        <div class="gk-people-group-text"><%= gk_records_light(note.body) %></div>
+        <p class="gk-people-group-by"><%= gk_people_t_marked(:text_gk_people_written_by, :user, note.user, GkRecords::Visibility.name_for(note.user), when: format_time(note.created_at)) %></p>
+      <% else %>
+        <p class="nodata"><%= l(:text_gk_people_nothing_written) %></p>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>
+
+<% if @group.custom_field_values.any? %>
+  <ul>
+    <% render_custom_field_values(@group) do |custom_field, formatted| %>
+      <li><span class="label"><%= custom_field.name %>:</span> <%= formatted %></li>
+    <% end %>
+  </ul>
+<% end %>
+
+<h3><%= l(:label_member_plural) %></h3>
+<ul>
+<% @group.users.visible.each do |user| %>
+    <li><%= gk_people_user(user) %></li>
+<% end %>
+</ul>
+
+<% if ready %>
+  <h3><%= l(:label_gk_people_group_records) %></h3>
+  <%= gk_records_list(@group, verification: true) %>
+  <%# Skriv and Skriv om fill in records' note form (gk_people_forms.js) %>
+  <%= javascript_include_tag 'gk_people_forms', plugin: 'gk_people' %>
+<% end %>
+<% html_title @group.name %>
+<% end %>

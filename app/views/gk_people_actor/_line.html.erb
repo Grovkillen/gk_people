@@ -1,0 +1,10 @@
+<%# "Registrerad av <person> via <konto>" (or what was done) under a journal or the issue's details. The person as on
+    the actor_records page (gk_people_actor_person): named, linked and marked only for one who may see the person register,
+    anyone else gets records' neutral text, also for a removed person; the account by its own visibility %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<% name = gk_people_actor_person(record.person) %>
+<p class="gk-people-actor-line">
+  <%= sprite_icon('user', '') %>
+  <%= l("text_gk_people_actor_line_#{record.action}", person: name, account: gk_people_named(record.user)).html_safe %>
+  <span class="gk-people-muted"><%= l("label_gk_people_actor_by_#{record.captured_by}") %></span>
+</p>

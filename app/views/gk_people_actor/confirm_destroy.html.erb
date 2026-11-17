@@ -1,0 +1,15 @@
+<%# A delete on a shared account: who is deleting, before core does it. The rest of the request (which issues or
+    entries, what to do with their hours) goes along unchanged. %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<h2><%= l(:label_gk_people_actor_confirm_destroy) %></h2>
+<% if @gk_people_error %><div class="flash error"><%= @gk_people_error %></div><% end %>
+<%= form_tag request.path, method: :delete do %>
+  <div class="box tabular">
+    <p><%= l(:text_gk_people_actor_confirm_destroy, account: User.current.name) %></p>
+    <% Array(@gk_people_passthrough['ids']).each do |id| %><%= hidden_field_tag 'ids[]', id, id: nil %><% end %>
+    <% @gk_people_passthrough.except('ids').each do |k, v| %><%= hidden_field_tag k, v, id: nil %><% end %>
+    <%= render partial: 'gk_people_actor/field', locals: { chosen: nil, account: User.current, uid: 'destroy' } %>
+  </div>
+  <%= submit_tag l(:button_delete) %>
+  <%= link_to l(:button_cancel), (validate_back_url(@gk_people_passthrough['back_url'].to_s) || @gk_people_cancel_path || home_path) %>
+<% end %>

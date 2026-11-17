@@ -1,0 +1,14 @@
+<%# On the account's page (users/show): the person behind the account. Shown to those who may see the register and
+    to the person herself; tokens never. %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<% channels = GkPeople.feature?('people.identifiers') ? GkPeople.channels_for(person, { title: user.name, url: request.original_url }, place: 'account') : [] %>
+<div class="box gk-people-account-person">
+  <h3><%= l(:label_gk_people_person) %></h3>
+  <ul>
+    <li><%= GkPeople::Access.view? ? link_to(person.name, gk_people_person_path(person)) : person.name %></li>
+    <% if person.organization %><li><%= l(:label_gk_people_organization) %>: <%= GkPeople::Access.view? ? link_to(person.organization.name, gk_people_organization_path(person.organization)) : person.organization.name %></li><% end %>
+    <% if person.title.present? %><li><%= l(:label_gk_people_title) %>: <%= person.title %></li><% end %>
+    <% if person.phone.present? %><li><%= l(:label_gk_people_phone) %>: <%= person.phone %></li><% end %>
+    <% if channels.any? %><li><%= l(:label_gk_people_channels) %>: <%= gk_people_channel_links(channels) %></li><% end %>
+  </ul>
+</div>

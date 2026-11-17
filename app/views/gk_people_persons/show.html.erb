@@ -1,0 +1,181 @@
+<% html_title @person.name %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<% manage = GkPeople::Access.manage? %>
+<div class="contextual">
+  <%# Klar and Slå ihop med... on a quick contact %>
+  <%= gk_people_quick_actions(@person) %>
+  <% if manage %><%= link_to sprite_icon('edit', l(:button_edit)), edit_gk_people_person_path(@person), class: 'icon icon-edit' %><% end %>
+  <% if GkPeople::SubjectAccess.allowed?(@person) %><%= link_to sprite_icon('lock', l(:label_gk_people_subject_access)), gk_people_subject_access_path(@person), class: 'icon icon-lock', id: 'gk-people-subject-access' %><% end %>
+</div>
+<h2><%= link_to l(:label_gk_people_persons), gk_people_persons_path %> &#187; <%= @person.name %>
+  <% unless @person.active %><span class="badge badge-status-locked gk-people-badge"><%= l(:label_gk_people_inactive) %></span><% end %>
+  <% if @person.consents.any? { |c| c.state == :revoked } %><span class="badge badge-private gk-people-badge"><%= l(:label_gk_people_consent_revoked_mark) %></span><% end %>
+  <%= gk_people_quick_mark(@person) %> <%= gk_records_verification_badge(@person) if respond_to?(:gk_records_verification_badge) %></h2>
+<%= gk_people_merged_note(@person) %>
+
+<%# Beside each field a reading set, the reading that last set it, as a link %>
+<% og = gk_people_origins(@person) %>
+<% src = ->(attr) { gk_people_origin(@person, attr, origins: og) } %>
+<div class="splitcontent">
+<div class="splitcontentleft">
+  <div class="box gk-people-facts">
+    <table class="attributes">
+      <% names = %w[display_name first_name last_name].filter_map { |f| src.call(f).presence } %>
+      <% if names.any? %><tr><th><%= l(:field_name) %></th><td><%= @person.name %> <%= names.first %></td></tr><% end %>
+      <tr><th><%= l(:field_type) %></th><td class="kind"><%= gk_people_person_kind_tag(@person.kind) %></td></tr>
+      <tr><th><%= l(:label_gk_people_organization) %></th><td><%= gk_people_org_link(@person.organization) %> <%= src.call(:organization_id) %></td></tr>
+      <% if @person.title.present? %><tr><th><%= l(:label_gk_people_title) %></th><td><%= @person.title %> <%= src.call(:title) %></td></tr><% end %>
+      <% if @person.email.present? %><tr><th><%= l(:field_mail) %></th><td><%= mail_to @person.email %> <%= src.call(:email) %></td></tr><% end %>
+      <% if @person.phone.present? %><tr><th><%= l(:label_gk_people_phone) %></th><td><%= @person.phone %> <%= src.call(:phone) %></td></tr><% end %>
+
+      <% if @person.languages.present? %><tr><th><%= l(:label_gk_people_languages) %></th><td><%= @person.language_list.join(', ') %></td></tr><% end %>
+      <% if @channels.any? && GkPeople.feature?('people.identifiers') %><tr><th><%= l(:label_gk_people_channels) %></th><td><%= gk_people_channel_links(@channels) %></td></tr><% end %>
+      <% if @person.synced? %><tr><th><%= l(:label_gk_people_source) %></th><td><%= @person.source %> <%= @person.external_id %>
+        <% if @person.synced_at %><span class="gk-people-muted">(<%= format_time(@person.synced_at) %>)</span><% end %></td></tr><% end %>
+      <%# The text as written, and beside it the sources the person cites %>
+      <% cited = gk_people_cited(@person) %>
+      <% if @person.info_source.present? || cited.present? %><tr><th><%= l(:label_gk_people_info_source) %></th><td><%= @person.info_source %><% if @person.info_source_on %> <span class="gk-people-muted">(<%= format_date(@person.info_source_on) %>)</span><% end %>
+        <% if cited.present? %><% if @person.info_source.present? %><br><% end %><%= cited %><% end %></td></tr><% end %>
+    </table>
+    <% if @person.notes.present? %><div class="wiki gk-people-notes"><%= simple_format(h(@person.notes)) %></div><% end %>
+  </div>
+
+  <% if GkPeople.feature?('people.groups') %>
+  <div class="box gk-people-section">
+  <h3 id="gk-people-groups"><%= l(:label_gk_people_groups) %></h3>
+  <% if @groups.empty? %>
+    <p class="gk-people-muted"><%= l(:text_gk_people_in_no_group) %></p>
+  <% else %>
+    <p class="gk-people-person-groups"><%= safe_join(@groups.map { |g| link_to(g.name, gk_people_group_path(g)) }, ', ') %></p>
+  <% end %>
+  </div>
+  <% end %>
+
+  <div class="box gk-people-section">
+    <h3 id="gk-people-account"><%= l(:label_gk_people_account) %></h3>
+    <% if @person.user %>
+      <p><%= gk_people_user(@person.user) %><% if (lg = gk_people_login(@person.user)) %> (<%= lg %>)<% end %>
+        <% if !@person.user.active? && gk_people_visible?(@person.user) %><span class="badge badge-status-locked gk-people-badge"><%= l("status_#{@person.user.status == Principal::STATUS_LOCKED ? 'locked' : 'registered'}") %></span><% end %></p>
+      <% if User.current.admin? %>
+        <%# Koppla bort is GK GUI Stuff's button with a reason, the place people.account_unlink. ask: true, it always
+            asks, whatever the reason's mode: the question, then that the person and the account both stay and that the
+            account can be linked again, then the button and Avbryt, the reason on its own line under them %>
+        <%= gk_gui_stuff_reason_button(l(:button_gk_people_unlink), reason: GkPeople.reason('account_unlink'), url: unlink_gk_people_person_path(@person),
+                                       ask: true, question: l(:text_gk_people_unlink_question), info: l(:text_gk_people_unlink_confirm)) %>
+      <% elsif manage %>
+        <p class="gk-people-muted"><%= l(:text_gk_people_unlink_admin_only) %></p>
+      <% end %>
+    <% else %>
+      <p class="gk-people-muted"><%= l(:text_gk_people_no_account) %></p>
+      <% if manage && @accounts.present? %>
+        <%= form_tag link_gk_people_person_path(@person), class: 'gk-people-inline-form' do %>
+          <%= select_tag 'user_id', options_for_select(@accounts.map { |u| ["#{u.name} (#{u.login})", u.id] }) %>
+          <%# Koppla is GK GUI Stuff's button with a reason, the place people.account_link; it sends the chosen account %>
+          <%= gk_gui_stuff_reason_button(l(:button_gk_people_link), reason: GkPeople.reason('account_link')) %>
+        <% end %>
+      <% end %>
+    <% end %>
+  </div>
+</div>
+
+<div class="splitcontentright">
+  <% if GkPeople.feature?('people.identifiers') %>
+  <div class="box gk-people-section">
+  <h3 id="gk-people-identifiers"><%= l(:label_gk_people_identifiers) %></h3>
+  <%# Lägg till identifierare sits in the box above the list, minimized, open when the person has none %>
+  <% schemes = GkPeopleScheme.active.sorted.to_a %>
+  <% if (GkPeople::Access.identifiers? || manage) && schemes.any? %>
+    <% add_box = capture do %>
+      <%= form_tag gk_people_person_identifiers_path(@person), class: 'gk-people-inline-form gk-people-add-identifier' do %>
+        <%= select_tag 'identifier[scheme_id]', options_for_select(schemes.map { |s| ["#{s.name} (#{gk_people_scheme_kind(s.kind)})", s.id, { 'data-token' => s.token? }] }), id: 'gk_people_scheme' %>
+        <%= text_field_tag 'identifier[value]', '', size: 24, id: 'gk_people_value', autocomplete: 'off', placeholder: l(:text_gk_people_value_placeholder) %>
+        <label><%= check_box_tag 'identifier[preferred]', '1', false, id: nil %> <%= l(:label_gk_people_preferred) %></label>
+        <%= submit_tag l(:button_add) %>
+      <% end %>
+      <p class="gk-people-muted"><%= l(:text_gk_people_token_hint) %></p>
+    <% end %>
+    <% box_title = l(:label_gk_people_identifier_add) %>
+    <%= gk_gui_stuff_choices_box('people.identifier_add', box_title, open: @identifiers.empty?) { add_box } %>
+  <% elsif schemes.empty? && User.current.admin? %>
+    <p class="gk-people-muted"><%= link_to l(:text_gk_people_no_schemes), gk_people_schemes_path %></p>
+  <% end %>
+  <% if @identifiers.empty? %>
+    <p class="nodata"><%= l(:label_no_data) %></p>
+  <% else %>
+  <table class="list gk-people-identifiers" data-gk-gui-rowmenu>
+    <thead><tr><th><%= l(:label_gk_people_scheme) %></th><th><%= l(:label_gk_people_value) %></th><th><%= l(:label_gk_people_valid) %></th><th></th></tr></thead>
+    <tbody>
+    <% @identifiers.each do |i| %>
+      <tr class="<%= 'gk-people-inactive' unless i.in_force? %>">
+        <td class="scheme"><%= i.scheme.name %><% if i.preferred %> <span class="gk-people-muted">(<%= l(:label_gk_people_preferred) %>)</span><% end %></td>
+        <td class="value"><% href = i.link(title: @person.name, url: request.original_url) %><%= href ? link_to(i.value, href, rel: 'noopener noreferrer', data: { gk_link_place: 'people' }) : i.value %></td>
+        <td class="valid"><%= [i.valid_from, i.valid_to].map { |d| d ? format_date(d) : '' }.join(" #{l(:text_gk_people_until)} ") unless i.valid_from.nil? && i.valid_to.nil? %></td>
+        <td class="buttons"><% if i.active && (GkPeople::Access.identifiers? || manage) %>
+          <%= link_to l(:button_gk_people_end), end_gk_people_person_identifier_path(@person, i), method: :post, data: gk_gui_stuff_confirm_data(l(:text_gk_people_end_confirm)).merge(gk_gui_row_action: true) %>
+        <% end %></td>
+      </tr>
+    <% end %>
+    </tbody>
+  </table>
+  <% end %>
+  </div>
+  <% end %>
+  <% if GkPeople::Responsibilities.ready? && GkPeople.feature?('people.responsibilities') %>
+    <% mine = GkPeople::Responsibilities.for_person(@person) %>
+    <% if mine[:held].any? || mine[:deputy_for].any? %>
+      <div class="box gk-people-section">
+      <h3 id="gk-people-responsibilities"><%= l(:label_gk_people_responsibilities) %></h3>
+      <ul class="gk-people-resp-list">
+        <% mine[:held].each do |a| %>
+          <li><%= link_to a.responsibility.name, gk_people_responsibility_path(a.responsibility) %> <span class="gk-people-muted"><%= a.scope_label %><%= ", #{l(:text_gk_people_until)} #{format_date(a.valid_to)}" if a.valid_to %></span></li>
+        <% end %>
+        <% mine[:deputy_for].each do |a| %>
+          <li><%= l(:text_gk_people_deputy_for, name: a.person.name) %>: <%= link_to a.responsibility.name, gk_people_responsibility_path(a.responsibility) %>
+            <% if a.deputy_period_covers?(User.current.today) %><span class="badge badge-status-locked gk-people-badge"><%= l(:label_gk_people_standing_in) %></span><% end %></li>
+        <% end %>
+      </ul>
+      </div>
+    <% end %>
+  <% end %>
+  <%= render(partial: 'gk_people_credentials/list', locals: { holder: @person }) if GkPeople::Credentials.ready? && GkPeople.feature?('people.credentials') %>
+  <%# The person's tags from gk_tags, when tags is there and its function tags.objects is on %>
+  <%= render(partial: 'gk_tags_tags/object_tags', locals: { object: @person }) if defined?(::GkTags::Taggables) %>
+  <%= render partial: 'gk_people_persons/consents', locals: { person: @person } %>
+  <% pin_start = @person.user_id.nil? || User.current.admin? %>
+  <% if GkPeople::Pin.ready? && GkPeople::Access.identifiers? && GkPeople.feature?('people.pin') %>
+    <div class="box gk-people-section">
+    <h3 id="gk-people-pin"><%= l(:field_gk_people_pin) %></h3>
+    <p><% if GkPeople::Pin.locked?(@person) %><strong><%= l(:text_gk_people_pin_locked_until, at: format_time(@person.pin_locked_until)) %></strong>
+       <% elsif GkPeople::Pin.set?(@person) %><%= l(:text_gk_people_pin_set_at, at: format_time(@person.pin_set_at)) %><% if GkPeople::Pin.must_change?(@person) %> <span class="gk-people-muted">(<%= l(:text_gk_people_pin_start_code) %>)</span><% end %>
+       <% else %><span class="gk-people-muted"><%= l(:text_gk_people_pin_not_set) %></span><% end %></p>
+    <% if pin_start %>
+    <%= form_tag gk_people_person_pin_path(@person), class: 'gk-people-inline-form', autocomplete: 'off' do %>
+      <%= password_field_tag 'pin', '', size: 10, inputmode: 'numeric', autocomplete: 'off', placeholder: l(:text_gk_people_pin_format) %>
+      <%= submit_tag l(:button_gk_people_pin_start) %>
+    <% end %>
+    <p class="gk-people-muted"><%= l(:text_gk_people_pin_start_hint) %></p>
+    <% else %>
+    <p class="gk-people-muted"><%= l(:text_gk_people_pin_start_admin_only) %></p>
+    <% end %>
+    </div>
+  <% end %>
+  <% if GkPeople::Actor.ready? && GkPeople::Actor.may_view_records? %>
+    <% acts = GkPeopleActorRecord.visible.where(person_id: @person.id).includes(:issue, :user, :project).sorted.limit(10).to_a %>
+    <% if acts.any? %>
+      <div class="box gk-people-section">
+      <h3 id="gk-people-actor-records"><%= l(:label_gk_people_actor_records_person) %></h3>
+      <ul class="gk-people-actor-list">
+        <% acts.each do |r| %>
+          <li><%= format_time(r.captured_at) %> <%= l("label_gk_people_actor_action_#{r.action}") %>: <%= gk_people_actor_target(r) %>
+            <span class="gk-people-muted"><%= gk_people_t_marked(:text_gk_people_actor_via, :account, r.user, gk_people_name(r.user)) %></span></li>
+        <% end %>
+      </ul>
+      <p><%= link_to l(:label_gk_people_actor_records_all), gk_people_actor_records_path(person_id: @person.id) %></p>
+      </div>
+    <% end %>
+  <% end %>
+</div>
+</div>
+
+<%= gk_gui_stuff_row_menu %>
+<%= gk_records_list(@person, verification: true) if GkPeople.records? %>

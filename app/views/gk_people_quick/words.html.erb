@@ -1,0 +1,45 @@
+<% html_title l(:label_gk_people_quick_words) %>
+<% core_language = @languages.first %>
+<h2><%= l(:label_gk_people_quick_words) %></h2>
+<p><%= l(:text_gk_people_quick_words) %></p>
+<p class="gk-people-muted"><%= l(:text_gk_people_quick_words_rows) %>
+  <% if @languages.size > 1 %><%= l(:text_gk_people_quick_words_languages) %><% end %></p>
+<%= form_tag gk_people_quick_words_path, id: 'gk-people-quick-words' do %>
+  <table class="list gk-people-quick-words">
+    <thead>
+      <tr>
+        <% @languages.each do |lang| %>
+          <th><%= ll(lang, :general_lang_name) %><%= " (#{l(:label_gk_people_quick_words_core)})" if lang == core_language && @languages.size > 1 %></th>
+        <% end %>
+        <th></th>
+      </tr>
+    </thead>
+    <%# GK GUI Stuff's row editor: a row per word, a new one from the template, removed with its own button %>
+    <tbody data-gk-gui-rows="people.quick_words" data-gk-gui-rows-name="words" data-gk-gui-rows-sortable="false">
+      <% @words.each_with_index do |word, i| %>
+        <% texts = word.texts(@languages) %>
+        <tr data-gk-gui-row>
+          <% @languages.each_with_index do |lang, c| %>
+            <td><%= text_field_tag "words[#{i}][texts][#{lang}]", texts[lang], id: "words_#{i}_texts_#{lang}", size: 30, maxlength: 60,
+                                   lang: lang, 'aria-label': ll(lang, :general_lang_name) %>
+                <%= hidden_field_tag "words[#{i}][id]", word.id, id: "words_#{i}_id" if c.zero? %></td>
+          <% end %>
+          <td class="buttons" data-gk-gui-row-remove></td>
+        </tr>
+      <% end %>
+      <template data-gk-gui-row-template>
+        <tr data-gk-gui-row>
+          <% @languages.each_with_index do |lang, c| %>
+            <td><%= text_field_tag "words[__INDEX__][texts][#{lang}]", '', id: "words___INDEX___texts_#{lang}", size: 30, maxlength: 60,
+                                   lang: lang, 'aria-label': ll(lang, :general_lang_name) %>
+                <%= hidden_field_tag 'words[__INDEX__][id]', '', id: 'words___INDEX___id' if c.zero? %></td>
+          <% end %>
+          <td class="buttons" data-gk-gui-row-remove></td>
+        </tr>
+      </template>
+    </tbody>
+  </table>
+  <p data-gk-gui-rows-add="people.quick_words"></p>
+  <%= submit_tag l(:button_save) %>
+<% end %>
+<%= gk_gui_stuff_row_editor %>

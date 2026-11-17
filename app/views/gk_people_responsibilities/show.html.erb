@@ -1,0 +1,96 @@
+<%# A responsibility: what it is, who acts now, and every holder there has been (never removed) %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<% r = @responsibility %>
+<% html_title r.name %>
+<% manage = GkPeople::Responsibilities.manage? %>
+<div class="contextual">
+  <% if manage %><%= link_to sprite_icon('edit', l(:button_edit)), edit_gk_people_responsibility_path(r), class: 'icon icon-edit' %><% end %>
+</div>
+<h2><%= link_to l(:label_gk_people_organisation), gk_people_responsibilities_path %> &#187; <%= r.name %></h2>
+<div class="box">
+  <p><strong><%= l(:field_gk_people_kind) %>:</strong> <%= l("label_gk_people_resp_kind_#{r.kind}") %> <span class="gk-people-muted">(<code><%= r.key %></code>)</span>
+    <% unless r.active %><span class="badge badge-status-locked gk-people-badge"><%= l(:label_gk_people_inactive) %></span><% end %></p>
+  <% if r.description.present? %><div class="wiki"><%= textilizable(r.description) %></div><% end %>
+  <% if r.wiki_page %>
+    <p><strong><%= l(:label_gk_people_role_description) %>:</strong> <%= link_to r.wiki_page.pretty_title, project_wiki_page_path(r.wiki_page.project, r.wiki_page.title) %></p>
+  <% end %>
+  <% creds = GkPeople::Credentials.ready? && GkPeople.feature?('people.credentials') %>
+  <% req = creds ? GkPeople::Credentials.required_keys(r) : [] %>
+  <% if req.any? %>
+    <p><strong><%= l(:label_gk_people_required_credentials) %>:</strong> <%= GkPeople::Credentials.kind_names(req).join(', ') %></p>
+  <% end %>
+  <% acting = GkPeople::Responsibilities.holder(r) %>
+  <p><strong><%= l(:label_gk_people_acting_now) %>:</strong>
+    <% if acting[:person] %><%= link_to acting[:person].name, gk_people_person_path(acting[:person]) %><%= gk_people_person_mark(acting[:person]) %>
+      <% if acting[:via] == :deputy %><span class="badge badge-status-locked gk-people-badge"><%= l(:label_gk_people_as_deputy, count: acting[:steps]) %></span><% end %>
+      <%= gk_people_lacking(GkPeople::Credentials.lacking(acting[:person], r)) if req.any? %>
+    <% else %><strong class="gk-people-vacancy-text"><%= l(:label_gk_people_vacancy) %></strong><% if acting[:warning] %> <span class="gk-people-muted"><%= l("text_gk_people_vacancy_#{acting[:warning]}") %></span><% end %><% end %>
+    <span class="gk-people-muted"><%= l(:text_gk_people_acting_org) %></span></p>
+</div>
+
+<h3><%= l(:label_gk_people_holders) %></h3>
+<%# Ny innehavare sits in the box above the holders, minimized, open when no holder is in force %>
+<% if manage %>
+<% holder_box = capture do %>
+  <%= form_tag assign_gk_people_responsibility_path(r), class: 'tabular' do %>
+    <div class="box">
+      <p><label><%= l(:label_gk_people_holder) %> <span class="required">*</span></label>
+        <%= select_tag 'person_id', options_for_select([['', '']] + GkPeoplePerson.active.sorted.map { |p| [p.name, p.id] }) %></p>
+      <p><label><%= l(:label_gk_people_scope) %></label>
+        <%= select_tag 'scope', grouped_options_for_select([[l(:label_gk_people_scope_organization), [[l(:label_gk_people_scope_organization), 'organization']]],
+                                                           [l(:label_gk_people_groups), GkPeopleGroup.active.sorted.map { |g| [g.name, "group:#{g.id}"] }],
+                                                           [l(:label_project_plural), Project.visible.sorted.map { |p| [p.name, "project:#{p.id}"] }]]) %>
+        <% if r.kind == 'object' %><em class="info"><%= l(:text_gk_people_object_later) %></em><% end %></p>
+      <p><label><%= l(:label_gk_people_valid_from) %></label><%= date_field_tag 'valid_from', User.current.today %></p>
+      <p><label><%= l(:label_gk_people_valid_to) %></label><%= date_field_tag 'valid_to' %></p>
+      <p><label><%= l(:label_gk_people_deputy) %></label>
+        <%= select_tag 'deputy_person_id', options_for_select([['', '']] + GkPeoplePerson.active.sorted.map { |p| [p.name, p.id] }) %></p>
+      <p><label><%= l(:field_notes) %></label><%= text_field_tag 'note', '', size: 60 %></p>
+    </div>
+    <%= submit_tag l(:button_add) %>
+  <% end %>
+<% end %>
+<% box_title = l(:label_gk_people_new_holder) %>
+<%= gk_gui_stuff_choices_box('people.holder_new', box_title, open: @now.empty?) { holder_box } %>
+<% end %>
+<% if @history.empty? %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% else %>
+<table class="list gk-people-list" data-gk-gui-rowmenu>
+  <thead><tr><th><%= l(:label_gk_people_holder) %></th><th><%= l(:label_gk_people_scope) %></th><th><%= l(:label_gk_people_valid_from) %></th><th><%= l(:label_gk_people_valid_to) %></th>
+    <th><%= l(:label_gk_people_deputy) %></th><th><%= l(:field_notes) %></th><th></th></tr></thead>
+  <tbody>
+  <% @history.each do |a| %>
+    <tr class="<%= cycle('odd', 'even') %><%= ' gk-people-inactive' unless a.in_force? %>">
+      <td class="holder"><%= link_to a.person.name, gk_people_person_path(a.person) %><%= gk_people_person_mark(a.person) %><%= gk_people_lacking(GkPeople::Credentials.lacking(a.person, r)) if req.any? && a.in_force? %></td>
+      <td class="scope"><%= a.scope_label %></td>
+      <td class="valid_from"><%= format_date(a.valid_from) if a.valid_from %></td>
+      <td class="valid_to"><%= format_date(a.valid_to) if a.valid_to %><% if a.ended_at %> <span class="gk-people-muted"><%= gk_people_t_marked(:text_gk_people_ended_by, :name, a.ended_by, gk_people_name(a.ended_by)) %></span><% end %></td>
+      <td class="deputy"><%= a.deputy&.name %><%= gk_people_person_mark(a.deputy) %><%= gk_people_lacking(GkPeople::Credentials.lacking(a.deputy, r)) if req.any? && a.in_force? && a.deputy %><% if a.deputy_valid_from || a.deputy_valid_to %> <span class="gk-people-muted">(<%= [a.deputy_valid_from, a.deputy_valid_to].map { |d| d ? format_date(d) : '' }.join(" #{l(:text_gk_people_until)} ") %>)</span><% end %></td>
+      <td class="description"><%= a.note %></td>
+      <td class="buttons">
+        <% own = a.person.user_id && a.person.user_id == User.current.id %>
+        <% if manage && a.in_force? && !a.ended_at && !own %>
+          <%# Ställföreträdare in GK GUI Stuff's popover: the fields, then Spara and Avbryt %>
+          <%= gk_gui_stuff_popover(l(:label_gk_people_deputy), html: { data: { gk_gui_row_action: 'keep' } }) do %>
+            <%= form_tag deputy_gk_people_responsibility_path(r, assignment_id: a.id), class: 'gk-people-deputy-form' do %>
+              <%= select_tag 'deputy_person_id', options_for_select([['', '']] + GkPeoplePerson.active.sorted.where.not(id: a.person_id).map { |p| [p.name, p.id] }, a.deputy_person_id),
+                             id: "deputy_person_id_#{a.id}", 'aria-label': l(:label_gk_people_deputy) %>
+              <label><%= l(:label_gk_people_standing_in_from) %> <%= date_field_tag 'deputy_valid_from', a.deputy_valid_from, id: "deputy_valid_from_#{a.id}" %></label>
+              <label><%= l(:label_gk_people_valid_to) %> <%= date_field_tag 'deputy_valid_to', a.deputy_valid_to, id: "deputy_valid_to_#{a.id}" %></label>
+              <%= gk_gui_stuff_popover_buttons(l(:button_save)) %>
+            <% end %>
+          <% end %>
+          <%= link_to l(:button_gk_people_end_assignment), end_gk_people_responsibility_path(r, assignment_id: a.id), method: :post, data: gk_gui_stuff_confirm_data(l(:text_gk_people_end_assignment_confirm)).merge(gk_gui_row_action: true) %>
+        <% elsif own && a.in_force? %><span class="gk-people-muted"><%= l(:text_gk_people_own_assignment) %></span><% end %>
+      </td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+<% end %>
+
+<%= render(partial: 'gk_people_responsibilities/role_sync') if GkPeople::RoleSync.ready? %>
+
+<%= gk_gui_stuff_row_menu %>
+<%= gk_records_list(r) if GkPeople.records? && respond_to?(:gk_records_list) %>

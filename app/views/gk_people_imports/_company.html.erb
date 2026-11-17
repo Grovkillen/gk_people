@@ -1,0 +1,84 @@
+<%# Company data: the file's facts, the municipalities to read (the selection) and sole traders, the counts, and the
+    rows that would do something, one list at a time and a page at a time (unchanged rows are only counted) %>
+<% f = i.options['file'] || {} %>
+<% munis = i.options['municipalities'] || {} %>
+<% chosen = Array(i.options['selection']) %>
+<p class="gk-people-muted"><%= f['file'] %> · <%= number_to_human_size(f['size'].to_i) %> · SHA-256 <code><%= f['sha256'] %></code>
+  · <%= l(:text_gk_people_company_lines, count: i.options['lines'].to_i) %> · <code><%= GkPeople::CompanyData::MAPPING %></code></p>
+
+<% if i.preview? %>
+<%= form_tag(gk_people_import_path(i), method: :patch) do %>
+<fieldset class="box"><legend><%= l(:label_gk_people_import_selection) %></legend>
+  <p class="gk-people-muted"><%= l(:text_gk_people_import_selection) %></p>
+  <% munis.each do |code, m| %>
+    <label class="block"><%= check_box_tag 'import[selection][]', code, chosen.include?(code), id: "selection_#{code}" %>
+      <%= code %> <%= m['name'] %> <span class="gk-people-muted">(<%= l(:text_gk_people_company_municipality_counts, workplaces: m['workplaces'], organizations: m['organizations']) %>)</span></label>
+  <% end %>
+  <p><%= hidden_field_tag 'import[sole_traders]', '0', id: nil %>
+    <label class="inline"><%= check_box_tag 'import[sole_traders]', '1', i.options['sole_traders'] != false, id: 'import_sole_traders' %>
+      <%= l(:label_gk_people_import_sole_traders) %></label>
+    <em class="info"><%= l(:text_gk_people_import_sole_traders) %></em></p>
+</fieldset>
+<p><%= submit_tag l(:button_gk_people_import_preview_again) %></p>
+<% end %>
+<% end %>
+
+<% if chosen.empty? %>
+  <p class="nodata"><%= l(:text_gk_people_import_selection_required) %></p>
+<% else %>
+  <p><%= gk_people_import_counts(i.counts) %></p>
+  <% if i.preview? %>
+  <div class="gk-people-import-buttons">
+    <%= gk_gui_stuff_popover(l(:button_gk_people_import_run), role: :alarm) do %>
+      <p><%= l(:text_gk_people_import_confirm, count: i.counts['new'].to_i + i.counts['update'].to_i) %></p>
+      <%= form_tag run_gk_people_import_path(i), method: :post do %><%= gk_gui_stuff_popover_buttons(l(:button_gk_people_import_run), alarm: true) %><% end %>
+    <% end %>
+    <%= button_to l(:button_gk_people_import_discard), discard_gk_people_import_path(i), method: :post %>
+  </div>
+  <% end %>
+
+  <%# one list at a time: what is new, changed, held, to review or rejected %>
+  <% lists = { 'new' => ->(r) { r['action'] == 'new' }, 'update' => ->(r) { r['action'] == 'update' }, 'held' => ->(r) { Array(r['held']).any? },
+               'review' => ->(r) { Array(r['review']).any? }, 'rejected' => ->(r) { r['action'] == 'rejected' } } %>
+  <% list = params[:list].presence_in(lists.keys) || 'new' %>
+  <% rows = i.preview_rows.select(&lists[list]) %>
+  <div class="tabs"><ul>
+    <% lists.each do |k, test| %>
+      <li><%= link_to safe_join([l("label_gk_people_import_list_#{k}"), gk_gui_stuff_count(i.preview_rows.count(&test))], " "), gk_people_import_path(i, list: k), class: (k == list ? 'selected' : nil) %></li>
+    <% end %>
+  </ul></div>
+  <% pages = Redmine::Pagination::Paginator.new(rows.size, 25, params[:page]) %>
+  <% if rows.empty? %>
+    <p class="nodata"><%= l(:label_no_data) %></p>
+  <% else %>
+  <div class="autoscroll">
+  <table class="list gk-people-list gk-people-import-rows">
+    <thead><tr><th><%= l(:label_gk_people_import_line) %></th><th><%= l(:field_name) %></th><th><%= l(:label_gk_people_import_action) %></th>
+      <th><%= l(:label_gk_people_import_values) %></th><th><%= l(:label_gk_people_import_notes) %></th></tr></thead>
+    <tbody>
+    <% rows[pages.offset, pages.per_page].each do |r| %>
+      <tr class="gk-people-import-<%= r['action'] %>">
+        <td class="line"><%= r['line'] %></td>
+        <td class="name"><%= r['kind'] == 'workplace' ? l(:text_gk_people_company_workplace, name: r['name']) : r['name'] %></td>
+        <td class="action"><span class="gk-people-import-action gk-people-import-action-<%= r['action'] %>"><%= l("label_gk_people_import_action_#{r['action']}") %></span>
+          <% if r['target_id'] %><%= link_to "##{r['target_id']}", gk_people_organization_path(r['target_id']) %><% end %></td>
+        <td class="text values"><% Array(r['changes']).each do |field, (was, now)| %>
+              <div><strong><%= l("label_gk_people_import_field_#{field}", default: field) %></strong>: <%= was.to_s.presence || '-' %> &#8594; <%= now %></div>
+            <% end %>
+            <% Array(r['held']).each do |h| %>
+              <div><strong><%= l("label_gk_people_import_field_#{h['field']}", default: h['field']) %></strong>:
+                <%= l("text_gk_people_import_held_#{h['reason']}", now: h['now'], file: h['file']) %></div>
+            <% end %>
+            <% Array(r['review']).each do |x| %>
+              <div><strong><%= l(:label_gk_people_import_list_review) %></strong>:
+                <%= l("text_gk_people_import_review_#{x['reason'] || x['field']}", now: x['now'].to_s, file: x['file'].to_s) %></div>
+            <% end %></td>
+        <td class="text notes"><% (Array(r['errors']) + Array(r['warnings'])).each do |m| %><div><%= m %></div><% end %></td>
+      </tr>
+    <% end %>
+    </tbody>
+  </table>
+  </div>
+  <span class="pagination"><%= pagination_links_full pages, rows.size, per_page_links: false %></span>
+  <% end %>
+<% end %>

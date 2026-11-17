@@ -1,0 +1,34 @@
+<%# The state while looking as someone else, in place of the elevation's, no bar over the page; gk_people_topmenu.js
+    puts it in the account part of the top menu, frames the page and shows gui_stuff's ribbon: the mask and the first
+    name, the whole sentence for screen readers and as the first line of the button's tooltip, and a button that
+    stops with the same form (without script it stays at the top of the page). "Ser som Anna Berg" (with the login
+    after the name, here, in the ribbon's sentence and on the phone row, when two share first and last name)
+    opens a box with what the page means for the one looked as, the time of the elevation, Förhandsvisa mejl on an
+    issue, and Sluta se som. On a phone the rows in core's menu say the same (GkPeople::StateMenu). %>
+<% label = record.target_label %>
+<% box = capture do %>
+  <div class="gk-people-topmenu-box">
+  <p><%= gk_people_t_marked(:text_gk_people_see_as_bar, :who, record.target_user || record.target_group, label) %></p>
+  <% if notice == :not_member %>
+    <p class="gk-people-see-as-notice"><%= l(:text_gk_people_see_as_not_member, who: label, project: project.name) %></p>
+  <% elsif notice == :role_elsewhere %>
+    <p class="gk-people-see-as-notice"><%= l(:text_gk_people_see_as_role_elsewhere, role: record.role&.name, there: record.project&.name, project: project.name) %></p>
+  <% elsif notice == :role_missing %>
+    <p class="gk-people-see-as-notice"><%= l(:text_gk_people_see_as_role_missing, role: record.role&.name, project: project.name) %></p>
+  <% end %>
+  <% if elevation %><p class="gk-people-see-as-until"><%= l(:text_gk_people_elevated_until, until: format_time(elevation.expires_at, false)) %></p><% end %>
+  <% if issue %>
+    <p><%= link_to l(:button_gk_people_see_as_mail), gk_people_see_as_mail_path(issue_id: issue.id), class: 'gk-people-see-as-mail' %></p>
+  <% end %>
+  <%= form_tag gk_people_see_as_stop_path, method: :post, class: 'gk-people-topmenu-act gk-people-see-as-stop-form' do %>
+    <%= hidden_field_tag 'back_url', request.fullpath, id: nil %>
+    <%= gk_gui_stuff_popover_buttons(l(:button_gk_people_see_as_stop)) %>
+  <% end %>
+  </div>
+<% end %>
+<div class="gk-people-topmenu" data-gk-people-frame="1"
+     data-gk-people-ribbon="<%= { key: 'see_as', word: record.ribbon_word, icon: 'masks-theater', title: l(:text_gk_people_see_as_menu, who: record.ribbon_who),
+                                  role: 'admin', priority: 90,
+                                  action: label.present? ? l(:text_gk_people_see_as_stop_who, who: label) : l(:button_gk_people_see_as_stop) }.to_json %>">
+  <%= gk_gui_stuff_popover(l(:text_gk_people_see_as_menu, who: record.ribbon_who), plain: true, ellipsis: false, role: :admin) { box } %>
+</div>

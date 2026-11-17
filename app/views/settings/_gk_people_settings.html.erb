@@ -1,0 +1,199 @@
+<%# gk_people: first the gate's line, as core's own warning line (GK GUI Stuff is the one not there, so nothing of it
+    can draw the line): GK GUI Stuff is missing, it is too old (with the version required), or it is installed in the
+    right version but not active (with a link to its own settings page); then Om pluginet; with GK GUI Stuff the
+    account link's two settings (accounts), shared accounts (actor_records), credentials, elevation and the change
+    log. Without it nothing else is drawn, and the stored
+    settings go back as hidden fields, because core's Save on this page writes what is posted over what is stored (as
+    records' settings page does: an empty hash posts nothing, an empty list comes back as [""], every other value as
+    text) %>
+<% plugin = Redmine::Plugin.find(:gk_people) %>
+<% gui_closed = GkPeople.gui_closed %>
+<% gui = gui_closed.nil? %>
+<% if gui %><% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %><% end %>
+<% if gui_closed == :missing %><p class="warning"><%= l(:text_gk_people_gui_stuff_missing) %></p>
+<% elsif gui_closed == :old %><p class="warning"><%= l(:text_gk_people_gui_stuff_required, version: GkPeople::GUI_STUFF_MIN) %></p>
+<% elsif gui_closed == :inactive %><p class="warning"><%= l(:text_gk_people_gui_stuff_inactive) %> <%= link_to l(:label_gk_people_gui_stuff_settings), plugin_settings_path('gk_gui_stuff') %></p><% end %>
+<fieldset class="box"><legend><%= l(:label_gk_people_about) %></legend>
+  <div><strong><%= plugin.name %></strong> <%= plugin.version %></div>
+  <div><%= l(:text_gk_people_description) %></div>
+</fieldset>
+<% unless gui %>
+  <% keep = nil %>
+  <% keep = lambda do |name, value|
+       case value
+       when Hash then value.flat_map { |k, v| keep.call("#{name}[#{k}]", v) }
+       when Array then value.empty? ? [hidden_field_tag("#{name}[]", '', id: nil)] : value.map { |v| hidden_field_tag("#{name}[]", v.to_s, id: nil) }
+       else [hidden_field_tag(name, value.to_s, id: nil)]
+       end
+     end %>
+  <%= safe_join((settings.is_a?(Hash) ? settings : {}).flat_map { |k, v| keep.call("settings[#{k}]", v) }) %>
+<% else %>
+<fieldset class="box tabular"><legend><%= l(:label_gk_people_settings_accounts) %></legend>
+  <p><label for="settings_create_person_on_user"><%= l(:label_gk_people_create_person_on_user) %></label>
+    <%= hidden_field_tag 'settings[create_person_on_user]', '0', id: nil %>
+    <%= check_box_tag 'settings[create_person_on_user]', '1', settings['create_person_on_user'].to_s != '0', id: 'settings_create_person_on_user' %>
+    <em class="info"><%= l(:text_gk_people_create_person_on_user) %></em></p>
+  <p><label for="settings_match_by_email"><%= l(:label_gk_people_match_by_email) %></label>
+    <%= hidden_field_tag 'settings[match_by_email]', '0', id: nil %>
+    <%= check_box_tag 'settings[match_by_email]', '1', settings['match_by_email'].to_s != '0', id: 'settings_match_by_email' %>
+    <em class="info"><%= l(:text_gk_people_match_by_email) %></em></p>
+  <% if defined?(GkPeoplePerson) && GkPeoplePerson.table_exists? %>
+    <p><label><%= l(:label_gk_people_persons) %></label>
+      <%= link_to GkPeoplePerson.count, gk_people_persons_path(active: 'all') %>
+      <% n = GkPeople::Accounts.unlinked_accounts.count %>
+      <% if n > 0 %><span class="gk-people-muted"><%= l(:text_gk_people_unlinked_accounts, count: n) %></span><% end %></p>
+  <% end %>
+</fieldset>
+<%# Pictures of users: everyone signed in may change her own, unless switched off; then the permission Byta egen bild decides %>
+<fieldset class="box tabular"><legend><%= l(:label_gk_feature_people_avatars) %></legend>
+  <p><label for="settings_own_avatar_for_all"><%= l(:label_gk_people_own_avatar_for_all) %></label>
+    <%= hidden_field_tag 'settings[own_avatar_for_all]', '0', id: nil %>
+    <%= check_box_tag 'settings[own_avatar_for_all]', '1', settings['own_avatar_for_all'].to_s != '0', id: 'settings_own_avatar_for_all' %>
+    <em class="info"><%= l(:text_gk_people_own_avatar_for_all) %></em></p>
+  <%# The order between the own picture and the organization's, and what those not signed in see %>
+  <p><label for="settings_avatar_order"><%= l(:label_gk_people_avatar_order) %></label>
+    <%= select_tag 'settings[avatar_order]', options_for_select(GkPeople::Outward::ORDERS.map { |o| [l("label_gk_people_avatar_order_#{o}"), o] }, settings['avatar_order'].presence || 'own_first'), id: 'settings_avatar_order' %>
+    <em class="info"><%= l(:text_gk_people_avatar_order) %></em></p>
+  <p><label for="settings_avatars_hide_anonymous"><%= l(:label_gk_people_avatars_hide_anonymous) %></label>
+    <%= hidden_field_tag 'settings[avatars_hide_anonymous]', '0', id: nil %>
+    <%= check_box_tag 'settings[avatars_hide_anonymous]', '1', settings['avatars_hide_anonymous'].to_s != '0', id: 'settings_avatars_hide_anonymous' %>
+    <em class="info"><%= l(:text_gk_people_avatars_hide_anonymous) %></em></p>
+  <p><label for="settings_names_hide_anonymous"><%= l(:label_gk_people_names_hide_anonymous) %></label>
+    <%= hidden_field_tag 'settings[names_hide_anonymous]', '0', id: nil %>
+    <%= check_box_tag 'settings[names_hide_anonymous]', '1', settings['names_hide_anonymous'].to_s == '1', id: 'settings_names_hide_anonymous' %>
+    <em class="info"><%= l(:text_gk_people_names_hide_anonymous) %></em></p>
+</fieldset>
+<fieldset class="box tabular"><legend><%= l(:label_gk_people_identifiers) %></legend>
+  <p><label for="settings_token_min_length"><%= l(:label_gk_people_token_min_length) %></label>
+    <%= number_field_tag 'settings[token_min_length]', GkPeople::Token.min_length(settings['token_min_length']), min: 1, max: 300, id: 'settings_token_min_length', class: 'gk-people-num' %>
+    <em class="info"><%= l(:text_gk_people_token_min_length) %></em></p>
+</fieldset>
+<fieldset class="box tabular"><legend><%= l(:label_gk_people_settings_name_chat) %></legend>
+  <p><label for="settings_name_chat_exposure"><%= l(:label_gk_people_name_chat_exposure) %></label>
+    <%= select_tag 'settings[name_chat_exposure]',
+                   options_for_select(GkPeople::NameLinks::EXPOSURE.map { |x| [l(:"label_gk_people_name_chat_exposure_#{x}"), x] }, GkPeople::NameLinks.exposure),
+                   id: 'settings_name_chat_exposure' %>
+    <em class="info"><%= l(:text_gk_people_name_chat_exposure) %></em></p>
+</fieldset>
+<fieldset class="box tabular"><legend><%= l(:label_gk_people_settings_actor) %></legend>
+  <p class="gk-people-muted"><%= l(:text_gk_people_settings_actor) %></p>
+  <p><label for="settings_actor_group_id"><%= l(:label_gk_people_actor_group) %></label>
+    <%= select_tag 'settings[actor_group_id]', options_for_select([['', '']] + Group.givable.sorted.map { |g| [g.name, g.id] }, settings['actor_group_id'].to_i), id: 'settings_actor_group_id' %>
+    <% if GkPeople::Actor.group %>
+      <span class="gk-people-muted"><%= l(:text_gk_people_actor_accounts, count: GkPeople::Actor.shared_users.count) %>
+        <%= link_to l(:label_gk_people_actor_records), gk_people_actor_records_path if GkPeople::Actor.ready? %></span>
+    <% end %>
+    <em class="info"><%= l(:text_gk_people_actor_group) %></em></p>
+  <p><label for="settings_actor_minutes"><%= l(:label_gk_people_actor_minutes) %></label>
+    <%= number_field_tag 'settings[actor_minutes]', settings['actor_minutes'].presence || 10, min: 1, max: 480, id: 'settings_actor_minutes', class: 'gk-people-num' %>
+    <em class="info"><%= l(:text_gk_people_actor_minutes) %></em></p>
+  <p><label for="settings_actor_prolong"><%= l(:label_gk_people_actor_prolong) %></label>
+    <%= hidden_field_tag 'settings[actor_prolong]', '0', id: nil %>
+    <%= check_box_tag 'settings[actor_prolong]', '1', settings['actor_prolong'].to_s != '0', id: 'settings_actor_prolong' %>
+    <em class="info"><%= l(:text_gk_people_actor_prolong) %></em></p>
+  <% if GkPeople::Actor.group && GkPeople::Actor.matrix_ready? %>
+    <% GkPeople::Actor.shared_users.sorted.each do |u| %>
+      <% gs = GkPeople::Actor.rows(u).pluck(:principal_type, :principal_id).uniq.map { |t, id| GkPeople::Actor.principal_name(t, id) }.compact %>
+      <p><label><%= gk_people_named(u) %></label>
+        <%= gs.any? ? gs.join(', ') : content_tag(:strong, l(:text_gk_people_actor_no_groups_admin)) %>
+        <%= link_to l(:button_change), gk_people_shared_account_path(u.id), class: 'icon icon-edit' %></p>
+    <% end %>
+  <% end %>
+</fieldset>
+<fieldset class="box tabular"><legend><%= l(:label_gk_people_role_sync) %></legend>
+  <p><label for="settings_role_sync_enabled"><%= l(:label_gk_people_role_sync_enabled) %></label>
+    <%= hidden_field_tag 'settings[role_sync_enabled]', '0', id: nil %>
+    <%= check_box_tag 'settings[role_sync_enabled]', '1', settings['role_sync_enabled'].to_s == '1', id: 'settings_role_sync_enabled' %>
+    <em class="info"><%= l(:text_gk_people_role_sync_enabled) %></em>
+    <% if defined?(GkPeopleRoleGrant) && GkPeople::RoleSync.ready? && GkPeople.feature?('people.responsibilities') %><%= link_to l(:label_gk_people_role_sync), gk_people_role_sync_path %><% end %></p>
+</fieldset>
+<%# The controller of the personal data an import reads in, named on the import's page %>
+<fieldset class="box tabular"><legend><%= l(:label_gk_people_imports) %></legend>
+  <p><label for="settings_data_controller_org_id"><%= l(:label_gk_people_data_controller_org) %></label>
+    <%= select_tag 'settings[data_controller_org_id]',
+                   options_for_select([['', '']] + GkPeopleOrganization.where(active: true).order(:name).limit(2000).pluck(:name, :id).map { |n, i| [n, i.to_s] },
+                                      settings['data_controller_org_id'].to_s), id: 'settings_data_controller_org_id' %>
+    <em class="info"><%= l(:text_gk_people_data_controller_org) %></em></p>
+</fieldset>
+<fieldset class="box tabular"><legend><%= l(:label_gk_people_credentials) %></legend>
+  <p><label for="settings_credential_warn_days"><%= l(:label_gk_people_credential_warn_days) %></label>
+    <%= number_field_tag 'settings[credential_warn_days]', settings['credential_warn_days'].presence || 30, min: 1, max: 365, id: 'settings_credential_warn_days', class: 'gk-people-num' %>
+    <em class="info"><%= l(:text_gk_people_credential_warn_days) %></em>
+    <% if defined?(GkPeopleCredentialKind) && GkPeople::Credentials.ready? && GkPeople.feature?('people.credentials') %><%= link_to l(:label_gk_people_credential_kinds), gk_people_credential_kinds_path %><% end %></p>
+</fieldset>
+<fieldset class="box tabular"><legend><%= l(:label_gk_people_elevation) %></legend>
+  <p class="gk-people-muted"><%= l(:text_gk_people_elevation_settings) %></p>
+  <% if Setting.rest_api_enabled? %><p class="flash warning" id="gk-people-elevation-api"><%= l(:text_gk_people_elevation_api) %></p><% end %>
+  <p class="gk-people-muted"><%= l(:text_gk_people_elevation_backoff) %></p>
+  <p><label for="settings_elevation_enabled"><%= l(:label_gk_people_elevation_enabled) %></label>
+    <%= hidden_field_tag 'settings[elevation_enabled]', '0', id: nil %>
+    <%= check_box_tag 'settings[elevation_enabled]', '1', settings['elevation_enabled'].to_s == '1', id: 'settings_elevation_enabled' %></p>
+  <p><label for="settings_elevation_minutes"><%= l(:label_gk_people_elevation_minutes) %></label>
+    <%= number_field_tag 'settings[elevation_minutes]', settings['elevation_minutes'].presence || 15, min: 1, max: 600, id: 'settings_elevation_minutes', class: 'gk-people-num' %>
+    <em class="info"><%= l(:text_gk_people_elevation_minutes) %></em></p>
+  <p><label for="settings_elevation_max_minutes"><%= l(:label_gk_people_elevation_max_minutes) %></label>
+    <%= number_field_tag 'settings[elevation_max_minutes]', settings['elevation_max_minutes'].presence || 120, min: 1, max: 1440, id: 'settings_elevation_max_minutes', class: 'gk-people-num' %></p>
+  <% reserve_ids = GkPeopleReserveAccount.active.pluck(:user_id) %>
+  <% admins = User.active.where(admin: true, type: 'User').where.not(id: reserve_ids).sorted.to_a %>
+  <% owners = Array(settings['elevation_reserve_owners']).map(&:to_i) %>
+  <% suffix = GkPeople::ReserveName.suffix(settings['elevation_reserve_suffix']) %>
+  <p><label for="settings_elevation_reserve_suffix"><%= l(:label_gk_people_reserve_suffix) %></label>
+    <%= text_field_tag 'settings[elevation_reserve_suffix]', suffix, size: 12, maxlength: 20, id: 'settings_elevation_reserve_suffix' %>
+    <em class="info"><%= l(:text_gk_people_reserve_suffix) %></em></p>
+  <p><label><%= l(:label_gk_people_reserve_accounts) %></label>
+    <%= hidden_field_tag 'settings[elevation_reserve_owners][]', '', id: nil %>
+    <% admins.each do |u| %>
+      <% state, row = GkPeople::Reserve.state_for(u) %>
+      <% login = GkPeople::ReserveName.login(u.login, suffix) %>
+      <label class="block gk-people-reserve">
+        <%= check_box_tag 'settings[elevation_reserve_owners][]', u.id, owners.include?(u.id), id: "settings_elevation_reserve_owner_#{u.id}", disabled: state == :no_person %>
+        <%= gk_people_named(u) %><% if (lg = gk_people_login(u)) %> <span class="gk-people-muted">(<%= lg %>)</span><% end %>
+        <% if row&.active && row.user %><code><%= row.user.login %></code><% elsif login %><span class="gk-people-muted">&#8594; <code><%= login %></code></span><% end %>
+        <span class="badge badge-status-locked gk-people-badge"><%= l("label_gk_people_reserve_state_#{state}", until: (row&.unlocked_until ? format_time(row.unlocked_until) : '')) %></span>
+      </label>
+    <% end %>
+    <em class="info"><%= l(:text_gk_people_reserve_accounts) %></em></p>
+  <p><label for="settings_elevation_shared_admin"><%= l(:label_gk_people_shared_admin) %></label>
+    <%= hidden_field_tag 'settings[elevation_shared_admin]', '0', id: nil %>
+    <%= check_box_tag 'settings[elevation_shared_admin]', '1', settings['elevation_shared_admin'].to_s == '1', id: 'settings_elevation_shared_admin' %>
+    <%= select_tag 'settings[elevation_shared_admin_id]', options_for_select([['', '']] + User.where(admin: true, type: 'User').where.not(id: GkPeopleReserveAccount.active.where(kind: 'personal').select(:user_id)).sorted.map { |u| gk_people_visible?(u) ? ["#{u.login} (#{u.name})", u.id] : [gk_people_hidden_text, u.id] }, settings['elevation_shared_admin_id'].to_i), id: 'settings_elevation_shared_admin_id' %>
+    <em class="info"><%= l(:text_gk_people_shared_admin) %></em></p>
+  <p class="gk-people-muted"><%= l(:text_gk_people_reserve_open_how, file: 'control\reserve.txt') %></p>
+  <% held = GkPeople::Elevation.held_back %>
+  <% if held %>
+    <p class="flash warning" id="gk-people-elevation-held"><%= l("text_gk_people_elevation_held_#{held}") %></p>
+  <% end %>
+</fieldset>
+<%# People's places in records' verification status: a row per place with records' levels (plain check boxes saved
+    with this form; records checks them before the settings are saved and moves records after) and, with GK Signoff,
+    people's own choice that the last step is set only through a review. Without records' places the choices are
+    carried forward unchanged. %>
+<% vp = GkPeople::VerificationPlaces %>
+<% levels_partial = vp.places? && lookup_context.exists?('verification_levels', ['gk_records'], true) %>
+<% signoff = Redmine::Plugin.installed?(:gk_signoff) %>
+<% if levels_partial || (vp.places? && signoff) %>
+<fieldset class="box tabular" id="gk-people-verification"><legend><%= l(:label_gk_people_settings_verification) %></legend>
+  <p class="gk-people-muted"><%= l(:text_gk_people_settings_verification) %></p>
+  <% vp::PLACES.each do |place| %>
+    <div class="gk-people-verification-place" data-gk-people-place="<%= place %>">
+      <p><label><%= l(:"label_gk_people_verification_place_#{place}") %></label>
+        <strong><%= vp.title(place) %></strong></p>
+      <% if levels_partial %><%= render partial: 'gk_records/verification_levels', locals: { place: place } %><% end %>
+      <% key = vp.setting_key(place) %>
+      <% if signoff %>
+        <% verified = vp.word_or_default('verified', place) %>
+        <p><label for="settings_<%= key %>"><%= l(:label_gk_people_verification_review, verified: verified) %></label>
+          <%= hidden_field_tag "settings[#{key}]", '0', id: nil %>
+          <%= check_box_tag "settings[#{key}]", '1', settings[key].to_s == '1', id: "settings_#{key}" %>
+          <em class="info"><%= l(:text_gk_people_verification_review, verified: verified) %></em></p>
+      <% else %>
+        <%= hidden_field_tag "settings[#{key}]", settings[key].to_s == '1' ? '1' : '0', id: nil %>
+      <% end %>
+    </div>
+  <% end %>
+</fieldset>
+<% else %>
+  <% vp::PLACES.each do |place| %><%= hidden_field_tag "settings[#{vp.setting_key(place)}]", settings[vp.setting_key(place)].to_s == '1' ? '1' : '0', id: nil %><% end %>
+<% end %>
+<%= gk_gui_stuff_changelog(:gk_people) %>
+<% end %>

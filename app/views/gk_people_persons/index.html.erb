@@ -1,0 +1,61 @@
+<%# The box Taggar in the sidebar (tags), from the list's own ids before paging %>
+<% if respond_to?(:gk_tags_sidebar_box) && @gk_tags_ids_sql %><% content_for :sidebar do %><%= gk_tags_sidebar_box('GkPeoplePerson', @gk_tags_ids_sql) %><% end %><% end %>
+<% html_title l(:label_gk_people_persons) %>
+<div class="contextual">
+  <% if GkPeople::Access.manage? %>
+    <%= link_to sprite_icon('add', l(:label_gk_people_person_new)), new_gk_people_person_path, class: 'icon icon-add' %>
+    <%= link_to sprite_icon('import', l(:label_gk_people_import)), new_gk_people_import_path(resource: 'persons'), class: 'icon icon-import' %>
+  <% end %>
+</div>
+<h2><%= l(:label_gk_people_persons) %></h2>
+<%= render partial: 'gk_people/tabs', locals: { current: :persons } %>
+
+<% if @unlinked.to_i > 0 %>
+  <div class="flash warning gk-people-fill">
+    <%= l(:text_gk_people_unlinked_accounts, count: @unlinked) %>
+    <%= button_to l(:button_gk_people_fill_accounts), fill_accounts_gk_people_persons_path, method: :post, form_class: 'gk-people-inline' %>
+  </div>
+<% end %>
+
+<%= form_tag(gk_people_persons_path, method: :get, class: 'gk-people-filter') do %>
+  <% Array(params[:tag]).each do |tg| %><%= hidden_field_tag 'tag[]', tg, id: nil %><% end %>
+  <fieldset class="box">
+    <label><%= l(:label_search) %> <%= text_field_tag 'q', @q, size: 30, placeholder: l(:text_gk_people_search_persons) %></label>
+    <label><%= l(:field_type) %>
+      <%= select_tag 'kind', content_tag('option', '', value: '') + gk_people_person_kind_options(params[:kind]) %></label>
+    <label><%= l(:label_gk_people_account) %>
+      <%= select_tag 'account', options_for_select([['', ''], [l(:general_text_Yes), 'yes'], [l(:general_text_No), 'no']], params[:account]) %></label>
+    <label><%= check_box_tag 'active', 'all', params[:active] == 'all' %> <%= l(:label_gk_people_show_inactive) %></label>
+    <% groups = GkPeople.feature?('people.groups') ? GkPeopleGroup.active.sorted.to_a : [] %>
+    <% if groups.any? %><label><%= l(:label_gk_people_group) %>
+      <%= select_tag 'group_id', content_tag('option', '', value: '') + options_for_select(groups.map { |g| [g.name, g.id] }, params[:group_id].to_i) %></label><% end %>
+    <%= hidden_field_tag 'organization_id', params[:organization_id] if params[:organization_id].present? %>
+    <%= render partial: 'gk_people/filter_buttons', locals: { clear: gk_people_persons_path } %>
+  </fieldset>
+<% end %>
+
+<% if @persons.empty? %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% else %>
+<div class="autoscroll">
+<table class="list gk-people-list">
+  <thead><tr>
+    <th><%= l(:field_name) %></th><th><%= l(:label_gk_people_organization) %></th><th><%= l(:field_type) %></th>
+    <th><%= l(:label_gk_people_title) %></th><th><%= l(:field_mail) %></th><th><%= l(:label_gk_people_account) %></th>
+  </tr></thead>
+  <tbody>
+  <% @persons.each do |p| %>
+    <tr class="<%= cycle('odd', 'even') %><%= ' gk-people-inactive' unless p.active %>">
+      <td class="name"><%= gk_people_person_link(p) %> <%= gk_people_quick_mark(p) %></td>
+      <td class="organization"><%= gk_people_org_link(p.organization) %></td>
+      <td class="kind"><%= gk_people_person_kind_tag(p.kind) %></td>
+      <td class="title"><%= p.title %></td>
+      <td class="email"><%= p.email %></td>
+      <td class="account"><%= gk_people_user(p.user) %></td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+</div>
+<span class="pagination"><%= pagination_links_full @pages, @count %></span>
+<% end %>

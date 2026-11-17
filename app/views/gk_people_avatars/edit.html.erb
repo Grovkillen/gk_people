@@ -1,0 +1,69 @@
+<%# An account's picture: the one shown now, and one form with one Save, as Redmine's own pages: the icon, a new own
+    picture chosen with gui_stuff's image_crop (only the small part is sent; without the module the file goes and the
+    middle is taken), hiding the organization's picture where that is allowed, and the part of the organization
+    folder's picture that is used (only its place is kept). Removing the own picture is a link of its own. %>
+<% html_title l(:label_gk_people_avatar) %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<% p = @principal %>
+<h2><%= l(:label_gk_people_avatar) %>: <%= p.name %></h2>
+
+<div class="box tabular gk-people-avatar-now">
+  <p><label><%= l(:label_gk_people_avatar_now) %></label>
+    <%= avatar(p, size: 128) %>
+    <% from = if @own then :text_gk_people_avatar_from_own
+              elsif @icon && GkPeople::AvatarIcon.known?(@icon) then :text_gk_people_avatar_from_icon
+              elsif @file then :text_gk_people_avatar_from_folder
+              else :text_gk_people_avatar_from_core
+              end %>
+    <em class="info"><%= l(from) %></em></p>
+  <% if @own %>
+  <p><label></label>
+    <%= link_to sprite_icon('del', l(:button_gk_people_avatar_remove)), gk_people_avatar_remove_path(user_id: p.id),
+                method: :post, data: gk_gui_stuff_confirm_data, class: 'icon icon-del', id: 'gk-people-avatar-remove' %>
+    <em class="info"><%= l(@file ? :text_gk_people_avatar_remove_folder : :text_gk_people_avatar_remove) %></em></p>
+  <% end %>
+</div>
+
+<%= form_tag(gk_people_avatar_update_path(user_id: p.id), multipart: true, id: 'gk-people-avatar-edit') do %>
+<% if GkPeople::AvatarIcon.library? %>
+<% gk_icons_assets if respond_to?(:gk_icons_assets) %>
+<fieldset class="box tabular"><legend><%= l(:label_gk_people_avatar_icon) %></legend>
+  <p><label for="gk_people_avatar_icon_name"><%= l(:label_gk_people_avatar_icon) %></label>
+    <%= text_field_tag 'icon', @icon, size: 30, maxlength: 120, id: 'gk_people_avatar_icon_name', autocomplete: 'off', data: { gk_icons_picker: '1' } %>
+    <em class="info"><%= l(:text_gk_people_avatar_icon) %></em></p>
+</fieldset>
+<% end %>
+
+<fieldset class="box tabular"><legend><%= l(:label_gk_people_avatar_own) %></legend>
+  <div data-gk-gui-stuff-crop data-out="256" data-out-field="picture_data">
+    <p><label for="gk_people_picture_file"><%= l(:label_gk_people_avatar_file) %></label>
+      <%= file_field_tag 'picture_file', accept: 'image/jpeg,image/png', id: 'gk_people_picture_file' %>
+      <em class="info"><%= l(:text_gk_people_avatar_file) %></em></p>
+  </div>
+</fieldset>
+
+<% if @file %>
+<fieldset class="box tabular"><legend><%= l(:label_gk_people_avatar_region) %></legend>
+  <p class="gk-people-muted"><%= l(:text_gk_people_avatar_region, name: @file.name) %></p>
+  <div data-gk-gui-stuff-crop data-src="<%= gk_people_avatar_original_path(user_id: p.id) %>"
+       data-region-x="region[x]" data-region-y="region[y]" data-region-s="region[s]">
+    <%= hidden_field_tag 'region[x]', @region&.x, id: nil %>
+    <%= hidden_field_tag 'region[y]', @region&.y, id: nil %>
+    <%= hidden_field_tag 'region[s]', @region&.s, id: nil %>
+  </div>
+  <% if @region %>
+  <p><label for="gk_people_avatar_middle"><%= l(:button_gk_people_avatar_region_middle) %></label>
+    <%= check_box_tag 'middle', '1', false, id: 'gk_people_avatar_middle' %></p>
+  <% end %>
+  <%# Hiding the organization's picture, where the organization allows it: the file stays %>
+  <% if @may_hide_folder %>
+  <p><label for="gk_people_hide_folder"><%= l(:label_gk_people_avatar_hide_folder) %></label>
+    <%= hidden_field_tag 'hide', '0', id: nil %>
+    <%= check_box_tag 'hide', '1', p.pref[:gk_people_hide_folder_picture].to_s == '1', id: 'gk_people_hide_folder' %>
+    <em class="info"><%= l(:text_gk_people_avatar_hide_folder) %></em></p>
+  <% end %>
+</fieldset>
+<% end %>
+
+<p><%= submit_tag l(:button_save) %></p>
+<% end %>

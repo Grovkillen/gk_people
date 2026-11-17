@@ -1,0 +1,9 @@
+<%# Administration, the account: which person it belongs to (the person is the truth, the account an identifier) %>
+<p><label><%= l(:label_gk_people_person) %></label>
+  <% if person %>
+    <%= link_to person.name, gk_people_person_path(person) %><% if person.organization %>, <%= person.organization.name %><% end %>
+  <% else %>
+    <span class="gk-people-muted"><%= l(:text_gk_people_account_without_person) %></span>
+    <%= link_to l(:label_gk_people_persons), gk_people_persons_path(account: 'no') %>
+  <% end %>
+</p>

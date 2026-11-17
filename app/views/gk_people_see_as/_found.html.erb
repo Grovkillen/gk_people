@@ -1,0 +1,7 @@
+<%# Search among all: people with an account and groups %>
+<% if found.nil? %>
+<% elsif found.empty? %>
+  <p class="nodata" style="font-size: 1em;"><%= l(:label_no_data) %></p>
+<% else %>
+  <div class="gk-people-picks"><% found.each do |p| %><%= render partial: 'gk_people_see_as/pick', locals: { p: p, note: nil } %><% end %></div>
+<% end %>

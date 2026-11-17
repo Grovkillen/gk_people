@@ -1,0 +1,63 @@
+<%# A shared account's matrix: who stands at this computer and what each may do there. Rows are people groups and
+    single persons, per project; columns are roles. The one chosen gets the sum of the roles on her rows (her own
+    and every active group she is in); the account's own roles in the project are the ceiling. %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<% html_title l(:label_gk_people_actor_at_computer) %>
+<%# The shared account's picture or icon, any picture, for one who may change it %>
+<% if GkPeople::Avatars.may_edit?(@account) %>
+<div class="contextual"><%= link_to l(:label_gk_people_avatar_change), gk_people_avatar_edit_path(user_id: @account.id), id: 'gk-people-shared-avatar' %></div>
+<% end %>
+<h2><%= link_to l(:label_user_plural), users_path %> &#187; <%= link_to gk_people_name(@account), edit_user_path(@account) %><%= gk_people_mark(@account) %> &#187; <%= l(:label_gk_people_actor_at_computer) %></h2>
+<p><%= l(:text_gk_people_actor_matrix_intro, account: gk_people_name(@account)) %></p>
+<% if @projects.empty? %>
+  <p class="flash warning"><%= l(:text_gk_people_actor_matrix_no_projects, account: gk_people_name(@account)) %></p>
+<% else %>
+<%= form_tag gk_people_shared_account_path(@account.id), method: :post do %>
+  <% if GkPeople::SharedAccounts.ready? %>
+    <p><label><%= hidden_field_tag 'require_pin', '0', id: nil %>
+      <%= check_box_tag 'require_pin', '1', GkPeople::SharedAccounts.require_pin?(@account), id: 'gk_people_require_pin' %>
+      <%= l(:label_gk_people_require_pin) %></label>
+      <em class="info"><%= l(:text_gk_people_require_pin) %></em></p>
+  <% end %>
+  <%# Ny rad sits in the box above the first project, minimized, open when the matrix has no rows; it stays inside the
+      matrix form, so Spara saves it with the rest %>
+  <% row_box = capture do %>
+    <%= select_tag 'new_principal', content_tag(:option, '', value: '') +
+          grouped_options_for_select([[l(:label_gk_people_groups), @groups.map { |g| [g.name, "group:#{g.id}"] }],
+                                      [l(:label_gk_people_persons), @persons.map { |p| [p.name, "person:#{p.id}"] }]]) %>
+    <%= select_tag 'new_project', options_for_select(@projects.map { |p| [p.name, p.id] }) %>
+    <% @roles.each do |r| %>
+      <label class="gk-people-plain-label"><%= check_box_tag 'new_roles[]', r.id, false, id: nil %> <%= r.name %></label>
+    <% end %>
+  <% end %>
+  <% box_title = l(:label_gk_people_actor_new_row) %>
+  <%= gk_gui_stuff_choices_box('people.actor_new_row', box_title, open: @rows.empty?) { row_box } %>
+  <% @projects.each do |project| %>
+    <% ceiling = @account.membership(project)&.roles.to_a %>
+    <% keys = @rows.keys.select { |_, _, prj| prj == project.id } %>
+    <h3><%= project.name %> <span class="gk-people-muted"><%= l(:text_gk_people_actor_ceiling, roles: ceiling.map(&:name).join(', ')) %></span></h3>
+    <% if keys.empty? %>
+      <p class="nodata gk-people-intro"><%= l(:label_no_data) %></p>
+    <% else %>
+    <table class="list gk-people-matrix">
+      <thead><tr><th></th><% @roles.each do |r| %><th><%= r.name %></th><% end %></tr></thead>
+      <tbody>
+      <% keys.sort_by { |t, id, _| [t == 'group' ? 0 : 1, GkPeople::Actor.principal_name(t, id).to_s.downcase] }.each do |t, id, prj| %>
+        <% have = @rows[[t, id, prj]].map(&:role_id) %>
+        <tr>
+          <td class="name"><span class="gk-people-actor-principal gk-people-actor-principal-<%= t %>"><%= l("label_gk_people_actor_principal_#{t}") %></span>: <strong><%= GkPeople::Actor.principal_name(t, id) || "##{id}" %></strong></td>
+          <% @roles.each do |r| %>
+            <td class="role<%= ' gk-people-over-ceiling' unless ceiling.include?(r) %>">
+              <%= check_box_tag 'cells[]', "#{t}:#{id}:#{prj}:#{r.id}", have.include?(r.id), id: nil, title: "#{GkPeople::Actor.principal_name(t, id)}, #{r.name}" %>
+            </td>
+          <% end %>
+        </tr>
+      <% end %>
+      </tbody>
+    </table>
+    <% end %>
+  <% end %>
+  <p class="gk-people-muted"><%= l(:text_gk_people_actor_matrix_hint) %></p>
+  <%= submit_tag l(:button_save) %>
+<% end %>
+<% end %>

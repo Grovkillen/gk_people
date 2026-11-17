@@ -1,0 +1,46 @@
+<%# A holder's credentials (person or organization page): those the viewer may see, with status, proof and, for those
+    who handle credentials, correcting, revoking and adding. Expired ones of a person only for herself and handlers. %>
+<% creds = GkPeople::Credentials.for_holder(holder) %>
+<% may = GkPeople::Credentials.manage? %>
+<% kinds = GkPeopleCredentialKind.active.for_holder(holder.is_a?(GkPeopleOrganization) ? 'organization' : 'person').sorted.to_a %>
+<% if creds.any? || (may && kinds.any?) %>
+<%# A box of its own with the heading inside, in the person's and organization's column %>
+<div class="box gk-people-section">
+  <h3 id="gk-people-credentials"><%= l(:label_gk_people_credentials) %></h3>
+  <%# The Nytt intyg link sits above the list; a single link needs no box %>
+  <% if may && kinds.any? %>
+    <p><%= link_to sprite_icon('add', l(:label_gk_people_credential_new)),
+                   new_gk_people_credential_path(holder.is_a?(GkPeopleOrganization) ? { organization_id: holder.id } : { person_id: holder.id }), class: 'icon icon-add' %></p>
+  <% end %>
+  <% if creds.empty? %>
+    <p class="gk-people-muted"><%= l(:text_gk_people_no_credentials) %></p>
+  <% else %>
+  <table class="list gk-people-list gk-people-credentials" data-gk-gui-rowmenu>
+    <thead><tr><th><%= l(:label_gk_people_credential) %></th><th><%= l(:label_gk_people_issued_on) %></th><th><%= l(:label_gk_people_valid_to) %></th>
+      <th><%= l(:field_status) %></th><th><%= l(:label_gk_people_issuer) %></th><th></th></tr></thead>
+    <tbody>
+    <% creds.each do |c| %>
+      <tr class="<%= cycle('odd', 'even') %><%= ' gk-people-inactive' if %i[expired revoked].include?(c.status) %>">
+        <td class="name"><%= gk_people_credential_kind_tag(c) %><% if c.reference.present? %> <span class="gk-people-muted">(<%= c.reference %>)</span><% end %>
+          <% if c.attachments.any? %><br><span class="gk-people-attachments"><% c.attachments.each do |a| %><%= link_to_attachment a, class: 'icon icon-attachment', icon: 'attachment' %><% end %></span><% end %></td>
+        <td class="issued_on"><%= format_date(c.issued_on) if c.issued_on %></td>
+        <td class="valid_to"><%= format_date(c.valid_to) if c.valid_to %></td>
+        <td class="status"><%= gk_people_credential_status(c) %><% if c.revoked_at %> <span class="gk-people-muted"><%= gk_people_t_marked(:text_gk_people_revoked_by, :name, c.revoked_by, gk_people_name(c.revoked_by), reason: c.revoke_reason.to_s) %></span><% end %></td>
+        <td class="issuer"><%= c.issuer %></td>
+        <td class="buttons">
+          <% if may && !c.revoked_at %>
+            <%= link_to sprite_icon('edit', l(:button_edit)), edit_gk_people_credential_path(c), class: 'icon icon-edit', data: { gk_gui_row_action: 'keep' } %>
+            <%# Återkalla is GK GUI Stuff's button with a reason, the place people.credential_revoke; it cannot be undone, so
+                it always asks in the role alarm: the question, the button and Avbryt, the reason on its own line under them %>
+            <%= gk_gui_stuff_reason_button(l(:button_gk_people_revoke), reason: GkPeople.reason('credential_revoke'), url: revoke_gk_people_credential_path(c),
+                                           irreversible: true, info: l(:text_gk_people_revoke_confirm)) %>
+          <% end %>
+        </td>
+      </tr>
+    <% end %>
+    </tbody>
+  </table>
+  <% end %>
+</div>
+<%= gk_gui_stuff_row_menu %>
+<% end %>

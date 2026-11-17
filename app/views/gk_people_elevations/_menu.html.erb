@@ -1,0 +1,41 @@
+<%# The state in the top menu, no bar over the page; gk_people_topmenu.js puts it in the account part of the top menu
+    and shows gui_stuff's ribbon from data-gk-people-ribbon (without script it stays at the top of the page).
+    Stepped up: "Administratör till 14:32", whose box has the time, how it is extended, the reason and Stega ner; the
+    ribbon with the shield and ADMIN, whose button steps down with the same form. The reserve account: its line,
+    without a box and without Stega ner, and the ribbon with the shield and RESERV in the alarm role. The ribbon's
+    whole sentence is what a screen reader says, and the first line of its button's tooltip where it has one. An
+    administrator without a person: "Kan inte stega upp", marked as seen only by administrators, whose box says
+    why and what to do. On a phone the rows in core's menu say the same (GkPeople::StateMenu). %>
+<% if elevation && reserve %>
+  <div class="gk-people-topmenu" data-gk-people-ribbon="<%= { key: 'reserve', word: l(:label_gk_people_reserve_ribbon), icon: 'shield', title: l(:text_gk_people_reserve_row),
+                                                               role: 'alarm', priority: 85 }.to_json %>">
+    <span class="gk-people-topmenu-line" title="<%= l(:text_gk_people_reserve_bar) %>"><%= l(:text_gk_people_reserve_row) %><span class="gk-gui-stuff-sr-only"> <%= l(:text_gk_people_reserve_bar) %></span></span>
+  </div>
+<% elsif elevation %>
+  <% until_text = l(:text_gk_people_elevated_until, until: format_time(elevation.expires_at, false)) %>
+  <div class="gk-people-topmenu" data-gk-people-ribbon="<%= { key: 'elevated', word: l(:label_gk_people_elevated_ribbon), icon: 'shield',
+                                                               title: l(:text_gk_people_elevated_ribbon_title), role: 'admin', priority: 80,
+                                                               action: l(:button_gk_people_step_down) }.to_json %>">
+    <%= gk_gui_stuff_popover(until_text, plain: true, ellipsis: false, role: :admin) do %>
+      <div class="gk-people-topmenu-box">
+        <p><%= l(:text_gk_people_elevated_box_extends, minutes: GkPeople::Elevation.minutes,
+                 max: format_time(elevation.started_at + GkPeople::Elevation.max_minutes.minutes, false)) %></p>
+        <% if elevation.reason.present? %><p><%= l(:text_gk_people_elevated_box_reason, reason: elevation.reason) %></p><% end %>
+        <%= form_tag gk_people_step_down_path, method: :post, class: 'gk-people-topmenu-act' do %>
+          <%= gk_gui_stuff_popover_buttons(l(:button_gk_people_step_down)) %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+<% elsif lacks_person %>
+  <div class="gk-people-topmenu">
+    <%= gk_gui_stuff_admin_only(tag: :span) do %>
+      <%= gk_gui_stuff_popover(l(:label_gk_people_cannot_step_up), plain: true, ellipsis: false, role: :admin) do %>
+        <div class="gk-people-topmenu-box">
+          <p><%= l(:text_gk_people_elevation_no_person) %></p>
+          <div class="gk-gui-stuff-popover-buttons"><%= button_tag l(:button_cancel), type: 'button', data: { gk_gui_popover_cancel: '1' } %></div>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+<% end %>

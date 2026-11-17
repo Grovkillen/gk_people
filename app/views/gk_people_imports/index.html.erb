@@ -1,0 +1,27 @@
+<%# Importera: the imports, newest first, with what they did %>
+<% html_title l(:label_gk_people_imports) %>
+<% content_for :header_tags do %><%= stylesheet_link_tag 'gk_people', plugin: 'gk_people' %><% end %>
+<div class="contextual">
+  <%= link_to sprite_icon('add', l(:label_gk_people_import_new)), new_gk_people_import_path, class: 'icon icon-add' %>
+</div>
+<h2><%= l(:label_gk_people_imports) %></h2>
+<% if @imports.empty? %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% else %>
+<table class="list gk-people-list">
+  <thead><tr><th><%= l(:field_created_on) %></th><th><%= l(:label_gk_people_import_resource) %></th><th><%= l(:label_gk_people_info_source) %></th>
+    <th><%= l(:field_status) %></th><th><%= l(:label_gk_people_import_counts) %></th><th><%= l(:field_user) %></th></tr></thead>
+  <tbody>
+  <% @imports.each do |i| %>
+    <tr class="<%= cycle('odd', 'even') %>">
+      <td class="created_on"><%= link_to format_time(i.created_at), gk_people_import_path(i) %></td>
+      <td class="resource"><span class="gk-people-import-resource gk-people-import-resource-<%= i.resource %>"><%= l("label_gk_people_import_#{i.resource}") %></span></td>
+      <td class="source"><%= i.source_label %><% if i.source_on %> <span class="gk-people-muted">(<%= format_date(i.source_on) %>)</span><% end %></td>
+      <td class="status"><span class="gk-people-import-state gk-people-import-state-<%= i.state %>"><%= l("label_gk_people_import_state_#{i.state}") %></span></td>
+      <td class="counts"><%= gk_people_import_counts(i.counts) %></td>
+      <td class="user"><%= i.user&.name %></td>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+<% end %>
